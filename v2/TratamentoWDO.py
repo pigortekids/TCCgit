@@ -38,9 +38,9 @@ def find_nearest_idx(array, value): # função para achar o valor mais perto em 
 
 ############################   VARIAVEIS   ############################
 HDexterno = "H:/" #coloquei isso porque fica mudando o nome do diretorio
-pastaArquivosDescompactados = HDexterno + "TCC/ArquivosDescompactados/"
-pastaArquivosFiltrados = HDexterno + "TCC/ArquivosFiltrados/v3/"
-pastaArquivoConsolidado = HDexterno + "TCC/ArquivoFinal/v2/"
+pastaArquivosDescompactados = HDexterno + "TCC/ArquivosDescompactados/" #pasta dos arquivos originais
+pastaArquivosFiltrados = HDexterno + "TCC/ArquivosFiltrados/v4/" #pasta dos arquivos já filtrados
+pastaArquivoConsolidado = HDexterno + "TCC/ArquivoFinal/v4/" #pasta final do arquivo consolidado
 inicioTotal = time.time() #variavel pra contar o tempo
 
 indexTotal = ['data_sessao', 'simbolo_instrumento', 'numero_negocio', 'preco_negocio',
@@ -49,7 +49,9 @@ indexTotal = ['data_sessao', 'simbolo_instrumento', 'numero_negocio', 'preco_neg
         'data_oferta_venda', 'numero_seq_venda', 'numero_geracao_venda', 'codigo_id_venda',
         'indicador_direto', 'corretora_compra', 'corretora_venda'] #todos as colunas do arquivo
 indexFiltrado = ['data_sessao', 'simbolo_instrumento', 'preco_negocio', 'quantidade_negociada', 'horario_negociacao',
-                 'indicador_anulacao', 'indicador_direto', 'corretora_compra', 'corretora_venda'] #todas as colunas que precisamos
+                 'indicador_anulacao', 'indicador_direto', 'corretora_compra', 'corretora_venda'] #primeiro filtro de colunas
+indexFiltrado2 = ['data_sessao', 'preco_negocio', 'quantidade_negociada', 'indicador_anulacao',
+                  'indicador_direto', 'corretora_compra', 'corretora_venda', 'horario_int'] #segundo filtro de colunas
 
 vencimentoWDO = pd.read_csv(HDexterno + "TCC/vencimentoWDO.csv") #le o arquivo contendo os vencimentos do WDO
 feriados = pd.read_csv(HDexterno + "TCC/feriadosBR.csv") #le o arquivo com os feriados BRs
@@ -79,6 +81,8 @@ for file in glob.glob("*.txt"): #pega arquivos com final TXT
     arquivo = pd.read_csv(file, sep=';', skiprows=1, header=None, names=indexTotal) #le o arquivo
     arquivo.drop(arquivo.tail(1).index, inplace=True) #tira ultima linha do arquivo
     arquivo = arquivo.filter(items=indexFiltrado) #pega apenas as colunas que precisamos
+    arquivo = arquivo.astype({'corretora_compra': int, 'corretora_venda': int, 'indicador_anulacao': bool,
+                              'indicador_direto': bool, 'quantidade_negociada': int}) #transforma as colunas
     arquivo['simbolo_instrumento'] = arquivo['simbolo_instrumento'].str.strip() #tira os espaços em branco
     
     
@@ -96,11 +100,13 @@ for file in glob.glob("*.txt"): #pega arquivos com final TXT
         anoCorreto += 1 #e aumenta em um o ano
     letraCorreta = vencimentoWDO[vencimentoWDO['mes'] == mesCorreto].iloc[0, 0] + str(anoCorreto)[2:] #define a letra que deveria estar no codigo
     arquivo = arquivo[arquivo['simbolo_instrumento'].str.contains('WDO' + letraCorreta)] #filtra o arquivo por WDO e a letra do vencimento
+    del arquivo['simbolo_instrumento'] #dleta a coluna do simbolo
     
     
     ################### filtro de horario ###################
     arquivo = arquivo[arquivo['horario_negociacao'] > horarioInicio] #filtra para começar apenas em um horario certo
     arquivo['horario_int'] = arquivo.apply(lambda row: tempoStrToInt(row['horario_negociacao']), axis=1) #cria coluna do valor inteiro do horario
+    del arquivo['horario_negociacao'] #deleta a coluna do horario
     colunaHorarios = np.array(arquivo['horario_int'].values.tolist()) #cria coluna de referencia dos horarios do arquivo
     arquivoFinal = pd.DataFrame(columns=arquivo.columns) #cria variavel para consolidar os valores mais perto
     for horaReferencia in range(horarioInicioInt, horarioFimInt, periodicidade): #desde a hora de inicio ate a hora final com step de periodicidade
@@ -114,7 +120,7 @@ for file in glob.glob("*.txt"): #pega arquivos com final TXT
         arquivoFinal = arquivoFinal.append(linhaAdicionar) #adiciona no arquivo final
     
     
-    arquivoFinal.to_csv(pastaArquivosFiltrados + "MaisFiltradoDia" + diaDoArquivo + ".csv", index=None, header=True) #exporta arquivo do dia WDO
+    arquivoFinal.to_csv(pastaArquivosFiltrados + "FiltradoDia" + diaDoArquivo + ".csv", index=None, header=True) #exporta arquivo do dia WDO
         
     
     colunaHorarios = None #limpa coluna de referencia
@@ -131,26 +137,24 @@ for file in glob.glob("*.txt"): #pega arquivos com final TXT
 
 
 #############################   CONSOLIDADO   #########################
-# =============================================================================
-# arquivoConsolidado = pd.DataFrame(columns=indexFiltrado) #cria variavel consolidada
-# 
-# 
-# os.chdir(pastaArquivosFiltrados) #caminho da pasta de importação
-# for file in glob.glob("*.csv"): #pega arquivos com final CSV
-#     
-#     
-#     inicioParcial = time.time() #variavel para contar o tempo do arquivo
-#     
-#     
-#     arquivoConsolidado = arquivoConsolidado.append(pd.read_csv(file)) #adiciona o novo arquivo no final do arquivo consolidado
-#     
-#     
-#     fim = time.time() - inicioParcial #contabiliza o tempo do arquivo
-#     print("Arquivo do dia " + file[11:19] + " consolidado em {:.3f}".format(fim) + " segundos") #mostra o tempo que demorou pra filtrar o arquivo
-# 
-# 
-# arquivoConsolidado.to_csv(pastaArquivoConsolidado + "Consolidado.csv", index=None, header=True) #exporta arquivo do dia WDO
-# =============================================================================
+arquivoConsolidado = pd.DataFrame(columns=indexFiltrado2) #cria variavel consolidada
+
+
+os.chdir(pastaArquivosFiltrados) #caminho da pasta de importação
+for file in glob.glob("*.csv"): #pega arquivos com final CSV
+    
+    
+    inicioParcial = time.time() #variavel para contar o tempo do arquivo
+    
+    
+    arquivoConsolidado = arquivoConsolidado.append(pd.read_csv(file)) #adiciona o novo arquivo no final do arquivo consolidado
+    
+    
+    fim = time.time() - inicioParcial #contabiliza o tempo do arquivo
+    print("Arquivo do dia " + file[15:23] + " consolidado em {:.3f}".format(fim) + " segundos") #mostra o tempo que demorou pra filtrar o arquivo
+
+
+arquivoConsolidado.to_csv(pastaArquivoConsolidado + "Consolidado.csv", index=None, header=True) #exporta arquivo do dia WDO
 #######################################################################
 
 
