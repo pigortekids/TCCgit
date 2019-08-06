@@ -4,7 +4,7 @@ from keras.optimizers import Adam
 from rl.policy import LinearAnnealedPolicy, EpsGreedyQPolicy
 from rl.memory import SequentialMemory
 from rl.agents.dqn import DQNAgent
-from StockTradingEnvIgao import StockTradingEnvIgao
+from IgaoEnv import IgaoEnv
 import pandas as pd
 
 MEMORY = 150
