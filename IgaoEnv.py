@@ -18,7 +18,7 @@ class IgaoEnv(gym.Env): #criação do env
         super(IgaoEnv, self).__init__() #chamada da função de iniciação das classes mães
 
         self.df = df #pega os valores de entrada
-        self.observation_space = spaces.Box(low=0, high=1, shape=(1, MEMORY), dtype=np.float16) #define o formato da entrada
+        self.observation_space = spaces.Box(low=0, high=1, shape=(MEMORY,), dtype=np.float16) #define o formato da entrada
         self.action_space = spaces.Box(low=np.array([0, 0]), high=np.array([3, 1]), dtype=np.float16) #define o formato da saida 
 
     def _next_observation(self): #função da proxima observação da IA
@@ -65,10 +65,10 @@ class IgaoEnv(gym.Env): #criação do env
             done = True
         elif self.df.loc[self.current_step, "data_sessao"] != self.df.loc[self.current_step-1, "data_sessao"]: #caso mudou o dia acaba
             done = True #define a variavel de parada do ambiente para sim
+        else:
+            self.obs = self._next_observation() #pega a proxima observação do ambiente
 
-        obs = self._next_observation() #pega a proxima observação do ambiente
-
-        return obs, reward, done, {} #retorna os valores da função
+        return self.obs, reward, done, {} #retorna os valores da função
 
     def reset(self): #função para resetar o ambiente
         self.balance = INITIAL_ACCOUNT_BALANCE #define o valor da conta como o valor inicial
@@ -79,8 +79,9 @@ class IgaoEnv(gym.Env): #criação do env
         comeco_dia = self.df.drop_duplicates('data_sessao', keep='first').index #pega todos os começos de dia
         self.current_step = comeco_dia[random.randint(0, len(comeco_dia)-1)] #define onde o agente esta no arquivo
         self.steps = 0 #define o valor de passos que o agente realizou
+        self.obs = self._next_observation()
 
-        return self._next_observation() ##retorna a proxima observação do ambiente
+        return self.obs ##retorna a proxima observação do ambiente
 
     def render(self, mode='human', close=False): #função para mostrar o ambiente
         profit = self.net_worth - INITIAL_ACCOUNT_BALANCE #define o valor ganho ate agora

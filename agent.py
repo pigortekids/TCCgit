@@ -7,17 +7,25 @@ from rl.agents.dqn import DQNAgent
 from IgaoEnv import IgaoEnv
 import pandas as pd
 
-MEMORY = 150
-state_size = MEMORY #quantidade de entradas
+WINDOW_LENGTH = 50 #memoria que ele vai olhar
 num_actions = 3 #quantidade de ações
 
+df = pd.read_csv('H:/TCC/ArquivoFinal/v6/Consolidado.csv') #le o arquivo de dados
+env = IgaoEnv(df) #cria o enviroment pro keras
+# =============================================================================
+# df_train = 'H:/TCC/Codigos/v4/trading-rl/trading_agent/data/train_data.npy'
+# env_train = IgaoEnv(df_train) #cria o enviroment pro keras
+# df_test = 'H:/TCC/Codigos/v4/trading-rl/trading_agent/data/test_data.npy'
+# env_test = IgaoEnv(df_test) #cria o enviroment pro keras
+# =============================================================================
+
 model = Sequential() #modelo do keras
-model.add(Flatten(input_shape=(1,state_size))) #camada de entrada
+model.add(Flatten(input_shape=(WINDOW_LENGTH,) + env.observation_space.shape)) #camada de entrada
 model.add(Dense(16, activation='relu')) #camada escondida
 model.add(Dense(num_actions, activation='linear')) #camada de saida
 #print(model.summary()) #printa um resumo do modelo
 
-memory = SequentialMemory(limit=50000, window_length=1) #cria uma memoria
+memory = SequentialMemory(limit=100000, window_length=WINDOW_LENGTH) #cria uma memoria
 
 policy = LinearAnnealedPolicy(EpsGreedyQPolicy(),
                               attr='eps',
@@ -38,9 +46,6 @@ dqn = DQNAgent(model=model,
 
 dqn.compile(Adam(lr=.00025), metrics=['mae']) #compila
 
-df = pd.read_csv('H:/TCC/ArquivoFinal/v5/Consolidado.csv') #le o arquivo de dados
-env = StockTradingEnvIgao(df) #cria o enviroment pro keras
-
 caminho = "H:/TCC/Codigos/v3/pesos.h5f" #caminho para salvar os pesos
 
 ######################TREINO######################
@@ -54,4 +59,4 @@ dqn.save_weights(caminho, overwrite=True) #salvando os pesos da rede neural
 # =============================================================================
 ##################################################
 
-dqn.test(env, nb_episodes=5, visualize=False) #testando o modelo
+dqn.test(env, nb_episodes=15, visualize=False) #testando o modelo
