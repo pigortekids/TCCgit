@@ -80,9 +80,8 @@ NORMALIZE_IN = True  # Normalize the input using z-score scaling
 STEPS = 500
 EPOCHS = int( MAX_DATA_SIZE / STEPS )
 #EPOCHS = 100
-WINDOW_LENGTH = 20
-VARIABLES = 6
-ONE_HOT = False  # Agent Position Awareness
+WINDOW_LENGTH = 100
+ONE_HOT = True  # Agent Position Awareness
 
 GAMMA = 0.95
 LR = 0.001
@@ -138,12 +137,12 @@ def main():
                        ce=CE, dp=DP, normalize_in=NORMALIZE_IN, reset_margin=RESET_FROM_MARGIN)
     else:
         env = DengEnv(FOLDER, STEPS, train_data, test_data, TEST_POINTS, val_data=VAL_DATA, val_starts=VAL_STARTS,
-                      window=WINDOW_LENGTH, variables=VARIABLES, limit_data=DATA_SIZE, one_hot=ONE_HOT, cost=COST_D)
+                      window=WINDOW_LENGTH, limit_data=DATA_SIZE, one_hot=ONE_HOT, cost=COST_D)
 
     # set up the model
     model = set_model(env)
 
-    memory = SequentialMemory(limit=MEM_SIZE, window_length=WINDOW_LENGTH*VARIABLES)
+    memory = SequentialMemory(limit=MEM_SIZE, window_length=WINDOW_LENGTH)
 
     # Exploration policy
     policy = LinearAnnealedPolicy(EpsGreedyQPolicy(), attr='eps',
@@ -172,7 +171,7 @@ def main():
 
 def set_model(env):
     model = Sequential()
-    model.add(Flatten(input_shape=(WINDOW_LENGTH * VARIABLES,) + (env.observation_space.shape[0] * VARIABLES,)))
+    model.add(Flatten(input_shape=(WINDOW_LENGTH,) + env.observation_space.shape))
     model.add(Dense(NODES))
     model.add(PReLU())
     model.add(Dense(NODES * 2))

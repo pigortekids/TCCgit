@@ -28,8 +28,7 @@ class Environment(gym.Env):
             "one_hot": True,
             "cost": 0.0001,
             "validation_data": None,
-            "val_starts": None,
-            "variables": 6
+            "val_starts": None
         }
 
         for var, default in var_defaults.items():
@@ -40,9 +39,9 @@ class Environment(gym.Env):
         self.test_folder = folder
         self.test_data = test_data
         self.data = np.load(train_data)
-        for i in range(self.data.shape[1]):
-            self.data[:,i] = ( self.data[:,i] - self.data[:,i].min() ) / ( self.data[:,i].max() - self.data[:,i].min() )
+        self.data = self.data[:,0]
         self.data_size = len(self.data)
+        print(self.data_size)
 
         self.test_starts = test_starts
         self.test_starts_index = 0
@@ -53,7 +52,7 @@ class Environment(gym.Env):
         self.action_space = gym.spaces.Discrete(3)
         if self.one_hot:
             input_shape += 3
-        self.observation_space = gym.spaces.Box(low=0.5, high=2.0, shape=(input_shape,self.variables))
+        self.observation_space = gym.spaces.Box(low=0.5, high=2.0, shape=(input_shape,))
 
         self.spec = None
         self.validation_process = False

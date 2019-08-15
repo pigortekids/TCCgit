@@ -6,9 +6,7 @@ import numpy as np
 #%matplotlib inline
 
 arquivo = pd.read_csv("H:/TCC/ArquivoFinal/v7/Consolidado.csv")
-arquivo = arquivo[['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min']]
-arquivo = arquivo.astype({'preco': float, 'hr_int': int, 'preco_pon': float,
-                              'qnt_soma': int, 'max': float, 'max': float})
+p = arquivo['preco'].as_matrix()
 
 #TCS_df = pd.read_csv('TCS')
 #p = TCS_df['Close'].as_matrix()
@@ -16,10 +14,9 @@ l = []
 
 tf.reset_default_graph()
 
-file_size = arquivo.shape[0]
-variables = arquivo.shape[1] #numero de variaveis a se considerar na entrada
-memory = 100 * variables #time steps
-n_inputs = 10 * variables #no of price ticks[inputs]
+file_size = len(p)
+memory = 100 #time steps
+n_inputs = 10 #no of price ticks[inputs]
 trans_cost = 1 #transaction cost
 batch_size = 1
 n_layers = 5
@@ -28,18 +25,8 @@ n_nodes = 128
 #W - shape(m*1)
 #U - shape(1*1)
 
-data_mean = []
-for i in range(arquivo.shape[1]):
-    arquivo.iloc[:,i] = ( arquivo.iloc[:,i] - arquivo.iloc[:,i].min() ) / ( arquivo.iloc[:,i].max() - arquivo.iloc[:,i].min() )
-inputs = []
-print(-3)
-for i in range(file_size):
-    for j in range(variables):
-        inputs.append(arquivo.iloc[i,j])
-print(-2)
-inputs = np.array(inputs)
-inputs = inputs.reshape([file_size * variables,1])
-print(-1)
+inputs = np.array([p[i+1] - p[i] for i in range(file_size-1)])
+inputs = inputs.reshape([file_size-1,1])
 decisions = np.array([1,0,-1])
 
 def next_batch(t,test=False):
@@ -86,37 +73,27 @@ def dnn_layer(features,Wdeep,bdeep):
         inp = tf.nn.sigmoid(inp)
     return inp
 
-print(0)
 plt.plot([i for i in range(n_inputs)],inputs[0:n_inputs],'r')
 plt.plot([i for i in range(n_inputs,n_inputs+memory)],inputs[n_inputs:n_inputs+memory],'g')
 
 learning_rate = 0.01
 
 obj = []
-print(1)
 camada_entrada = init_weights([n_inputs,1])
 U = init_weights([1,1])
 b = init_weights([1,1])
-print(2)
 dt = tf.Variable(tf.zeros([1,1]),dtype=tf.float32,trainable=False)
 features = tf.placeholder(tf.float32,shape = [n_inputs+memory,1])
-print(3)
 Wdeep = [init_weights([n_inputs,n_nodes])]
 bdeep = [init_weights([n_nodes,1])]
-print(4)
 for i in range(n_layers-2):
     Wdeep.append(init_weights([n_nodes,n_nodes]))
     bdeep.append(init_weights([n_nodes,1]))
-print(5)
 bdeep.append(init_weights([n_inputs,1]))
 Wdeep.append(init_weights([n_nodes,n_inputs]))
-print(6)
 UT,r,delta = unfolded(features,camada_entrada,b,U,dt,Wdeep,bdeep)
-print(7)
 optimizer = tf.train.AdadeltaOptimizer(learning_rate=learning_rate)
-print(8)
 train = optimizer.minimize(-UT)
-print(9)
 
 saver = tf.train.Saver()
 init = tf.global_variables_initializer()

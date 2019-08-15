@@ -121,8 +121,7 @@ class Deng(Environment):
         index = self.position
 
         for i in range(self.window):
-            for j in range(self.variables):
-                zts.append(self.data[index][j])
+            zts.append(self.data[index])
             index -= 1
 
         input_a = np.asarray(zts)
@@ -143,8 +142,8 @@ class Deng(Environment):
         The reward function of the agent. Based on his action calculate a pnl and a fee as a result
         Normalize the reward to a proper range
         """
-        c_val = self.data[self.position][0]
-        pr_val = self.data[self.position - 1][0]
+        c_val = self.data[self.position]
+        pr_val = self.data[self.position - 1]
 
         dt = self.action  # current action
         zt = ( c_val - pr_val )  # profit/loss
