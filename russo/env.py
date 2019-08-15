@@ -40,6 +40,8 @@ class Environment(gym.Env):
         self.test_folder = folder
         self.test_data = test_data
         self.data = np.load(train_data)
+        for i in range(self.data.shape[1]):
+            self.data[:,i] = ( self.data[:,i] - self.data[:,i].min() ) / ( self.data[:,i].max() - self.data[:,i].min() )
         self.data_size = len(self.data)
 
         self.test_starts = test_starts

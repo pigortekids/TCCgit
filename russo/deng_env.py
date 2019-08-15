@@ -28,10 +28,6 @@ class Deng(Environment):
         self.pnl_e6 = 0
         self.pnl_e5 = 0
 
-        self.data_mean = []
-        for i in range(self.data.shape[1]):
-            self.data_mean.append(np.std(self.data[i][1:] - self.data[i][:-1]))  # Get the mean of the data to normalise the input
-
         self.reset()
 
     def step(self, action):
@@ -126,7 +122,7 @@ class Deng(Environment):
 
         for i in range(self.window):
             for j in range(self.variables):
-                zts.append(self.data[index][j] / self.data_mean[j])
+                zts.append(self.data[index][j])
             index -= 1
 
         input_a = np.asarray(zts)
@@ -139,6 +135,7 @@ class Deng(Environment):
             input_a = np.append(input_a, [a, b, c])
 
         observation = input_a
+
         return observation
 
     def get_reward(self):
