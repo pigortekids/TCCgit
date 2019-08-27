@@ -14,19 +14,25 @@ import pandas as pd
 from sklearn import preprocessing
 
 ##################### INICIALIZAÇÃO DE VARIÁVEIS ################################################
-dias = 272
-steps = 6431   # 9h04 -> 17h50 a cada 5 segundos 
+dias = 0
+steps = []   # 9h04 -> 17h50 a cada 5 segundos 
 epocas = 10000
 janela = 2      # numero entradas na janela de tempo
 best_reward = 0
 best_W = [0.0,0.0,0.0]
 
 ####################### LEITURA DOS DADOS #######################################################
-arquivo = pd.read_csv("D:/TCC/ArquivoFinal/v1/Consolidado.csv")
+arquivo = pd.read_csv("F:/TCC/ArquivoFinal/v1/Consolidado.csv")
 inputs = arquivo['preco'].values
+dt = arquivo['dt'].values
 imax = np.amax(inputs)
-inputs = inputs/imax
+inputs = inputs/imax        #normaliza preços
 
+steps.append(0)
+for i in range(1,len(dt)):
+    if (dt[i] != dt[i-1]):
+        steps.append(i)     #numero de linhas entre dias
+dias = len(steps)           
 ########################### FUNÇÕES ###############################################################
 
 """environment - implementacao da decisao"""
@@ -60,31 +66,23 @@ def obter_acao(estado, W):
     else:
         return 0                #neutro
 
-def rodar_1dia(p, c, W):
+def rodar_1dia(p, c, W, d):
     ncont = 0       #reinicia nº de contratos
     valor = 0       # reinicia preço medio
     r = 0
-    
-    global best_W, best_reward
-    
-    for step in range(steps-1):                 #roda os dados
+    for step in range(steps[d-1], steps[d]):                 #roda os dados
         estado = ([ncont, valor, p[step]])      #posição e mercado
         acao = obter_acao(estado, W)            #obtem ação
         ncont, valor, reward = atuacao(p[step], ncont, acao, c, valor)
-        if reward > best_reward:
-            best_W = W
-            best_reward = reward
         r += reward             #soma reward
     return r
 
 def rodar_dias(p, c):
     r = []
-    for item in range(10):              #loop de dias
+    for dia in range(1, dias):              #loop de dias
         W = np.random.random(3)         #gerar novos pesos
-        r.append(rodar_1dia(p, c, W))   #adiciona na lista de rewards
+        r.append(rodar_1dia(p, c, W, dia))   #adiciona na lista de rewards
     return r
 
 
 print(rodar_dias(inputs, 1.06))
-print(best_reward)
-print(best_W)
