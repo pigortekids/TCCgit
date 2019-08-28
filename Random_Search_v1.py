@@ -8,21 +8,25 @@ ALGORITMO RANDOM SEARCH NO MERCADO FUTURO
 v1
 """
 import numpy as np
-import matplotlib.pyplot as plt
-import random
 import pandas as pd
-from sklearn import preprocessing
+from pathlib import Path
 
 ##################### INICIALIZAÇÃO DE VARIÁVEIS ################################################
 dias = 0
 steps = []   # 9h04 -> 17h50 a cada 5 segundos 
 epocas = 10000
-janela = 2      # numero entradas na janela de tempo
-best_reward = 0
-best_W = [0.0,0.0,0.0]
+memoria = 50
+best_rewards = 0
+best_pesos = np.zeros(memoria + 2)
+
+teste = True   
+salvar_pesos = True
+directory = str(Path.cwd())
+if teste:
+    best_pesos = np.load(directory + "/pesos.npy")
 
 ####################### LEITURA DOS DADOS #######################################################
-arquivo = pd.read_csv("F:/TCC/ArquivoFinal/v1/Consolidado.csv")
+arquivo = pd.read_csv("C:/Users/igora/Desktop/Consolidado.csv")
 inputs = arquivo['preco'].values
 dt = arquivo['dt'].values
 imax = np.amax(inputs)
@@ -32,57 +36,64 @@ steps.append(0)
 for i in range(1,len(dt)):
     if (dt[i] != dt[i-1]):
         steps.append(i)     #numero de linhas entre dias
-dias = len(steps)           
+dias = len(steps)
 ########################### FUNÇÕES ###############################################################
 
 """environment - implementacao da decisao"""
-def atuacao(pt, ncont, acao, c, valor):  #preço atual, nº de contratos posicionados,
+def atuacao(preco, ncont, acao, custo, valor):  #preço atual, nº de contratos posicionados,
                                          #ação atual, custo, valor da posição
     ncont_anterior = ncont              #salva posição anterior
     ncont += acao                       #posição atual = pos anterior + ação
-    dp = (pt - abs(valor))*imax            #variação do preço atual e do preço de compra/venda
-    recompensa = ncont_anterior*dp*10 - c*abs(acao)  #reward = lucro - custo
+    dp = (preco - abs(valor))*imax            #variação do preço atual e do preço de compra/venda
+    recompensa = ncont_anterior*dp*10 - custo*abs(acao)  #reward = lucro - custo
     if ((ncont > 0 and acao == 1) or (ncont < 0 and acao == -1)):    
-        valor = abs( (ncont_anterior*valor + acao*pt) / ncont )     #calcula preço medio da posição
+        valor = abs( (ncont_anterior*valor + acao*preco) / ncont )     #calcula preço medio da posição
     elif ncont == 0:
         valor = 0                  #se não ha posição
         
     return ncont, valor, recompensa
 
 """função para obter a decisão"""
-def obter_acao(estado, W):
-    prod_escalar = np.dot(estado, W)
+def obter_acao(estado, pesos):
+    prod_escalar = np.dot(estado, pesos)
     
     if prod_escalar > 0.5:
         if  estado[0] < 1:
             return 1            #comprar
-        else:
-            return 0            #limita a posição entre -1 e 1
     elif prod_escalar < -0.5:
         if  estado[0] > -1:
             return -1           #vender
-        else:
-            return 0            #limita a posição entre -1 e 1
-    else:
-        return 0                #neutro
+    return 0                #neutro
 
-def rodar_1dia(p, c, W, d):
-    ncont = 0       #reinicia nº de contratos
+def rodar_1dia(precos, custo, pesos, d):
+    ncont = 0       # reinicia nº de contratos
     valor = 0       # reinicia preço medio
-    r = 0
-    for step in range(steps[d-1], steps[d]):                 #roda os dados
-        estado = ([ncont, valor, p[step]])      #posição e mercado
-        acao = obter_acao(estado, W)            #obtem ação
-        ncont, valor, reward = atuacao(p[step], ncont, acao, c, valor)
-        r += reward             #soma reward
-    return r
+    sum_reward = 0
+    for step in range(steps[d-1], steps[d]):  #roda os dados
+        if step - steps[d-1] > memoria:
+            ultimos_precos = precos[step - memoria : step] #filtra só o dia que esta
+            estado = np.append([ncont, valor], ultimos_precos)     #posição e mercado
+            acao = obter_acao(estado, pesos)            #obtem ação
+            ncont, valor, reward = atuacao(precos[step], ncont, acao, custo, valor)
+            sum_reward += reward             #soma reward
+    return sum_reward
 
-def rodar_dias(p, c):
-    r = []
+def rodar_dias(precos, custo):
+    pesos = np.random.random(memoria + 2)         #gerar novos pesos
+    if teste:
+        pesos = best_pesos
     for dia in range(1, dias):              #loop de dias
-        W = np.random.random(3)         #gerar novos pesos
-        r.append(rodar_1dia(p, c, W, dia))   #adiciona na lista de rewards
-    return r
+        sum_rewards = rodar_1dia(precos, custo, pesos, dia)
+    return sum_rewards, pesos
 
-
-print(rodar_dias(inputs, 1.06))
+for epoca in range(epocas):
+    sum_rewards, pesos = rodar_dias(inputs, 1.06)
+    if sum_rewards > best_rewards:
+        best_rewards = sum_rewards
+        best_pesos = pesos
+    print(f"epoca {epoca}")
+    print(f"melhor somatoria de rewards = {best_rewards}\n")
+    if teste:
+        break
+    if salvar_pesos:
+        np.save(directory + "/pesos.npy", best_pesos)
