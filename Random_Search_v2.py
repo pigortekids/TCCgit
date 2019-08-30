@@ -13,9 +13,10 @@ from pathlib import Path
 dias = 0
 steps = []   # 9h04 -> 17h50 a cada 5 segundos 
 epocas = 10000
-memoria = 3
+memoria = 50
 best_rewards = 0
 best_pesos = np.zeros(memoria + 2)
+custo = 1.06/2
 
 teste = True   
 salvar_pesos = True
@@ -24,7 +25,7 @@ directory = str(Path.cwd())
  #   best_pesos = np.load(directory + "/pesos.npy")
 
 ####################### LEITURA DOS DADOS #######################################################
-arquivo = pd.read_csv("C:/Users/core/Documents/GitHub/TCCgit/Consolidado.csv")
+arquivo = pd.read_csv(directory + "/Consolidado.csv")
 inputs = arquivo['preco'].values
 dt = arquivo['dt'].values
 imax = np.amax(inputs)
@@ -41,28 +42,31 @@ dias = len(steps)
 """environment - implementacao da decisao"""
 def atuacao(preco, ncont, acao, custo, valor):  #preço atual, nº de contratos posicionados,
                                          #ação atual, custo, valor da posição
+    valor_cheio = 0.
     ncont_anterior = ncont              #salva posição anterior
     ncont += acao                       #posição atual = pos anterior + ação
     
-    dp = (preco*(imax-imin)+imin) - (valor*(imax-imin)+imin)            #variação do preço atual e do preço de compra/venda
-    if dp>300:
-
-        print(valor*(imax-imin)+imin)   
-        print(preco*(imax-imin)+imin)
-        print(dp)
+    if valor != 0:
+        valor_cheio = (valor*(imax-imin)+imin)
+    dp = (preco*(imax-imin)+imin) - valor_cheio            #variação do preço atual e do preço de compra/venda
+    
     posicao = ncont_anterior*dp*10 - custo*abs(acao)  #reward = lucro - custo
+
+    #decisoes
     
-    if ((ncont > 0 and acao == 1) or (ncont < 0 and acao == -1)):    
+    if ( (ncont_anterior>=1 and acao==1) or (ncont_anterior<=-1 and acao==-1) ):    #aumento do nº de contratos
         valor = abs( (ncont_anterior*valor + acao*preco) / ncont )     #calcula preço medio da posição
-    elif ncont == 0:
-        valor = 0                  #se não ha posição
-    
+    elif ( ncont_anterior==0 and acao != 0 ):       #primeiro valor
+        valor = preco
+    elif  ( ncont==0 ):
+        valor = 0
+
     return ncont, valor, posicao, ncont_anterior
 
 """função para obter a decisão"""
 def obter_acao(estado, pesos):
     prod_escalar = np.dot(estado, pesos)
-    prod_escalar = np.tanh(prod_escalar)
+    prod_escalar = np.tanh(prod_escalar)    #tanh do prod_escalar
     if prod_escalar > 0.5:
         if  estado[0] < 1:
             return 1            #comprar
@@ -74,7 +78,6 @@ def obter_acao(estado, pesos):
 def rodar_1dia(precos, custo, pesos, d):
     ncont = 0       # reinicia nº de contratos
     valor = 0       # reinicia preço medio
-    sum_reward = 0
     reward = 0
     ncont_anterior = 0
     posicao = 0
@@ -85,9 +88,9 @@ def rodar_1dia(precos, custo, pesos, d):
             acao = obter_acao(estado, pesos)            #obtem ação
             ncont, valor, posicao, ncont_anterior = atuacao(precos[step], ncont, acao, custo, valor)
             if (ncont_anterior != ncont):       #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
-                sum_reward += posicao             #soma reward
-    sum_reward += reward - custo*abs(ncont)            #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
-    return sum_reward
+                reward += posicao             #soma reward
+    reward += posicao - custo*abs(ncont)            #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
+    return reward
 
 def rodar_dias(precos, custo):   
     sum_rewards = 0
