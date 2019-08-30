@@ -42,11 +42,12 @@ dias = 0
 steps = []   # 9h04 -> 17h50 a cada 5 segundos 
 epocas = 100
 memoria = 50
-n_entradas = memoria + 2
+n_entradas = memoria + 3
 n_saidas = 3
 n_neuronios = 4
 best_rewards = 0
 best_pesos = np.zeros(n_entradas)
+custo = 1.06/2
 
 teste = True   
 salvar_pesos = True
@@ -61,7 +62,7 @@ dt = arquivo['dt'].values
 imax = np.amax(inputs)
 imin = np.amin(inputs)
 inputs = (inputs - imin)/(imax - imin) #normaliza preços
-custo = 1.06 / 2 #custo
+
 RNA = NeuralNetwork(n_entradas, n_saidas, n_neuronios) #cria uma rede com os valores do estado como entrada
 
 steps.append(0)
@@ -71,20 +72,28 @@ for i in range(1,len(dt)):
 dias = len(steps)
 ########################### FUNÇÕES ###############################################################
 
-"""environment - implementacao da decisao"""
 def atuacao(preco, ncont, acao, custo, valor):  #preço atual, nº de contratos posicionados,
                                          #ação atual, custo, valor da posição
+    valor_cheio = 0.
     ncont_anterior = ncont              #salva posição anterior
     ncont += acao                       #posição atual = pos anterior + ação
-    dp = (preco - abs(valor))*imax            #variação do preço atual e do preço de compra/venda
-    recompensa = ncont_anterior*dp*10 - custo*abs(acao)  #reward = lucro - custo
     
-    if ((ncont > 0 and acao == 1) or (ncont < 0 and acao == -1)):    
+    if valor != 0:
+        valor_cheio = (valor*(imax-imin)+imin)  #valor posicionado atual
+
+    dp = (preco*(imax-imin)+imin) - valor_cheio            #variação do preço atual e do preço de compra/venda
+    posicao = ncont_anterior*dp*10 - custo*abs(acao)       #posicao = lucro - custo (INSTANTÂNEO)
+
+    #calculos sobre o valor    
+    if ( (ncont_anterior>=1 and acao==1) or (ncont_anterior<=-1 and acao==-1) ):    #aumento do nº de contratos
         valor = abs( (ncont_anterior*valor + acao*preco) / ncont )     #calcula preço medio da posição
-    elif ncont == 0:
-        valor = 0                  #se não ha posição
-    
-    return ncont, valor, recompensa, ncont_anterior
+    elif ( ncont_anterior==0 and acao != 0 ):       #primeiro valor
+        valor = preco
+    elif  ( ncont==0 ):
+        valor = 0
+    #caso nao se encaixe nessas condições: valor = valor (nada muda)
+
+    return ncont, valor, posicao, ncont_anterior
 
 """função para obter a decisão"""
 def obter_acao(estado):
@@ -100,20 +109,20 @@ def obter_acao(estado):
 def rodar_1dia(precos, custo, dia):
     ncont = 0       # reinicia nº de contratos
     valor = 0       # reinicia preço medio
-    sum_reward = 0
     reward = 0
+    posicao = 0
     ncont_anterior = 0
     for step in range(steps[dia-1], steps[dia]):  #roda os dados
         if step - steps[dia-1] > memoria:
             ultimos_precos = precos[step - memoria : step] #filtra só o dia que esta
-            estado = np.append([ncont, valor], ultimos_precos)     #posição e mercado
+            estado = np.append([ncont, valor, posicao], ultimos_precos)     #posição e mercado
             acao = obter_acao(estado)            #obtem ação
-            ncont, valor, reward, ncont_anterior = atuacao(precos[step], ncont, acao, custo, valor)
+            ncont, valor, posicao, ncont_anterior = atuacao(precos[step], ncont, acao, custo, valor)
             if (ncont_anterior != ncont):       #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
-                sum_reward += reward             #soma reward                           
+                reward += posicao             #soma reward                           
                          
-    sum_reward += reward - custo*abs(ncont)            #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
-    return sum_reward
+    reward += posicao - custo*abs(ncont)            #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
+    return reward
 
 def rodar_dias(precos, custo):   
     sum_rewards = 0
