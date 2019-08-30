@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Aug 22 23:11:22 2019
-
 @author: Bruno
-
 ALGORITMO RANDOM SEARCH NO MERCADO FUTURO
 v3
 """
@@ -32,9 +30,7 @@ class NeuralNetwork:
             self.reset_pesos()
         self.layer1 = sigmoid(np.dot(inputs, self.weights1)) #valores da entrada para a primeira camada escondida
         self.saida = sigmoid(np.dot(self.layer1, self.weights2)) #valores da primeira camada escondida para a saida
-        print(self.saida)
         decisao = np.argmax(self.saida) #pega o maior valor do vetor de saida
-        print(decisao)
         return decisao #retorna a decisão da rede
     
 ##################### INICIALIZAÇÃO DE VARIÁVEIS ################################################
@@ -42,7 +38,8 @@ dias = 0
 steps = []   # 9h04 -> 17h50 a cada 5 segundos 
 epocas = 100
 memoria = 50
-n_entradas = memoria + 3
+variaveis = 6
+n_entradas = memoria * variaveis + 3
 n_saidas = 3
 n_neuronios = 4
 best_rewards = 0
@@ -57,11 +54,14 @@ directory = str(Path.cwd())
 
 ####################### LEITURA DOS DADOS #######################################################
 arquivo = pd.read_csv("./Consolidado.csv")
-inputs = arquivo['preco'].values
+inputs = arquivo[['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min']]
 dt = arquivo['dt'].values
-imax = np.amax(inputs)
-imin = np.amin(inputs)
-inputs = (inputs - imin)/(imax - imin) #normaliza preços
+for i in range(inputs.shape[1]):
+    imax = np.amax(inputs.loc[:, inputs.columns[i]])
+    imin = np.amin(inputs.loc[:, inputs.columns[i]])
+    inputs.loc[:, inputs.columns[i]] = (inputs.loc[:, inputs.columns[i]] - imin)/(imax - imin) #normaliza preços
+imax = np.amax(inputs.loc[:, inputs.columns[i]])
+imin = np.amin(inputs.loc[:, inputs.columns[i]])
 
 RNA = NeuralNetwork(n_entradas, n_saidas, n_neuronios) #cria uma rede com os valores do estado como entrada
 
@@ -117,7 +117,7 @@ def rodar_1dia(precos, custo, dia):
             ultimos_precos = precos[step - memoria : step] #filtra só o dia que esta
             estado = np.append([ncont, valor, posicao], ultimos_precos)     #posição e mercado
             acao = obter_acao(estado)            #obtem ação
-            ncont, valor, posicao, ncont_anterior = atuacao(precos[step], ncont, acao, custo, valor)
+            ncont, valor, posicao, ncont_anterior = atuacao(precos['preco'][step], ncont, acao, custo, valor)
             if (ncont_anterior != ncont):       #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
                 reward += posicao             #soma reward                           
                          
