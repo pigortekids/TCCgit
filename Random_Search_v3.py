@@ -56,12 +56,13 @@ directory = str(Path.cwd())
 arquivo = pd.read_csv("./Consolidado.csv")
 inputs = arquivo[['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min']]
 dt = arquivo['dt'].values
+pmax = np.amax(inputs.loc[:, inputs.columns[0]])
+pmin = np.amin(inputs.loc[:, inputs.columns[0]])
 for i in range(inputs.shape[1]):
     imax = np.amax(inputs.loc[:, inputs.columns[i]])
     imin = np.amin(inputs.loc[:, inputs.columns[i]])
     inputs.loc[:, inputs.columns[i]] = (inputs.loc[:, inputs.columns[i]] - imin)/(imax - imin) #normaliza preços
-imax = np.amax(inputs.loc[:, inputs.columns[i]])
-imin = np.amin(inputs.loc[:, inputs.columns[i]])
+
 
 RNA = NeuralNetwork(n_entradas, n_saidas, n_neuronios) #cria uma rede com os valores do estado como entrada
 
@@ -79,9 +80,9 @@ def atuacao(preco, ncont, acao, custo, valor):  #preço atual, nº de contratos 
     ncont += acao                       #posição atual = pos anterior + ação
     
     if valor != 0:
-        valor_cheio = (valor*(imax-imin)+imin)  #valor posicionado atual
+        valor_cheio = (valor*(pmax-pmin)+pmin)  #valor posicionado atual
 
-    dp = (preco*(imax-imin)+imin) - valor_cheio            #variação do preço atual e do preço de compra/venda
+    dp = (preco*(pmax-pmin)+pmin) - valor_cheio            #variação do preço atual e do preço de compra/venda
     posicao = ncont_anterior*dp*10 - custo*abs(acao)       #posicao = lucro - custo (INSTANTÂNEO)
 
     #calculos sobre o valor    
@@ -98,6 +99,7 @@ def atuacao(preco, ncont, acao, custo, valor):  #preço atual, nº de contratos 
 """função para obter a decisão"""
 def obter_acao(estado):
     decisao = RNA.feedforward(estado) #calcula a saida da rede neural
+
     if decisao == 0: #comprar
         if  estado[0] < 1:
             return 1
@@ -119,7 +121,7 @@ def rodar_1dia(precos, custo, dia):
             acao = obter_acao(estado)            #obtem ação
             ncont, valor, posicao, ncont_anterior = atuacao(precos['preco'][step], ncont, acao, custo, valor)
             if (ncont_anterior != ncont):       #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
-                reward += posicao             #soma reward                           
+                reward += posicao             #soma reward           
                          
     reward += posicao - custo*abs(ncont)            #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
     return reward
