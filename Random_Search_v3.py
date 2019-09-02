@@ -39,7 +39,7 @@ steps = []   # 9h04 -> 17h50 a cada 5 segundos
 epocas = 100
 memoria = 50
 variaveis = 6
-n_entradas = memoria * variaveis + 3
+n_entradas = memoria * variaveis + 3 #ncont, valor, posicao e inputs
 n_saidas = 3
 n_neuronios = 4
 best_rewards = 0
@@ -62,7 +62,6 @@ for i in range(inputs.shape[1]):
     imax = np.amax(inputs.loc[:, inputs.columns[i]])
     imin = np.amin(inputs.loc[:, inputs.columns[i]])
     inputs.loc[:, inputs.columns[i]] = (inputs.loc[:, inputs.columns[i]] - imin)/(imax - imin) #normaliza preços
-
 
 RNA = NeuralNetwork(n_entradas, n_saidas, n_neuronios) #cria uma rede com os valores do estado como entrada
 
@@ -122,7 +121,7 @@ def rodar_1dia(precos, custo, dia):
             ncont, valor, posicao, ncont_anterior = atuacao(precos['preco'][step], ncont, acao, custo, valor)
             if (ncont_anterior != ncont):       #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
                 reward += posicao             #soma reward           
-                         
+
     reward += posicao - custo*abs(ncont)            #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
     return reward
 
