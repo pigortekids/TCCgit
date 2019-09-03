@@ -124,7 +124,7 @@ def rodar_1dia(precos, custo, dia):
             if (ncont_anterior != ncont):       #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
                 reward += posicao             #soma reward     
             
-            modelo.remember(estado, acao, reward, [ncont, valor, posicao])
+            modelo.remember(estado, acao, reward, np.array([ncont, valor, posicao]))
             if len(modelo.memory) > memoria:
                 modelo.replay(memoria)
             
