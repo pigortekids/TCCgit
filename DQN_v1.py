@@ -8,6 +8,7 @@ v1
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import DQNModel_v1 as dqn
 
 ################### REDE NEURAL ################################################
 def sigmoid(x):
@@ -67,6 +68,10 @@ for i in range(1,len(dt)):
     if (dt[i] != dt[i-1]):
         steps.append(i)     #numero de linhas entre dias
 dias = len(steps)
+
+########################  DECLARA MODELO ################################
+modelo = dqn.DQNAgent(n_saidas, n_neuronios)
+
 ########################### FUNÇÕES ###############################################################
 
 def atuacao(preco, ncont, acao, custo, valor):  #preço atual, nº de contratos posicionados,
@@ -114,18 +119,18 @@ def rodar_1dia(precos, custo, dia):
         if step - steps[dia-1] > memoria:
             ultimos_precos = precos[step - memoria : step] #filtra só o dia que esta
             estado = np.append([ncont, valor, posicao], ultimos_precos)     #posição e mercado
-            acao = obter_acao(estado)            #obtem ação
+            acao = modelo(estado)            #obtem ação
             ncont, valor, posicao, ncont_anterior = atuacao(precos['preco'][step], ncont, acao, custo, valor)
             if (ncont_anterior != ncont):       #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
                 reward += posicao             #soma reward           
-
+            
     reward += posicao - custo*abs(ncont)            #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
     return reward
 
 def rodar_dias(precos, custo):   
     sum_rewards = 0
 
-    for dia in range(1, dias):                      #loop de dias
+    for dia in range(1, dias):                              #loop de dias
         sum_rewards += rodar_1dia(precos, custo, dia)
         print("dia: %0.d: R$ %0.2f" %(dia,sum_rewards))
     return sum_rewards, pesos
