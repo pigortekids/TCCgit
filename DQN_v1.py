@@ -99,7 +99,7 @@ def atuacao(preco, ncont, acao, custo, valor):  #preço atual, nº de contratos 
 
 """função para obter a decisão"""
 def obter_acao(estado):
-    decisao = RNA.feedforward(estado) #calcula a saida da rede neural
+    decisao = modelo.act(estado) #calcula a saida da rede neural
 
     if decisao == 0: #comprar
         if  estado[0] < 1:
@@ -119,10 +119,14 @@ def rodar_1dia(precos, custo, dia):
         if step - steps[dia-1] > memoria:
             ultimos_precos = precos[step - memoria : step] #filtra só o dia que esta
             estado = np.append([ncont, valor, posicao], ultimos_precos)     #posição e mercado
-            acao = modelo(estado)            #obtem ação
+            acao = obter_acao(estado)            #obtem ação
             ncont, valor, posicao, ncont_anterior = atuacao(precos['preco'][step], ncont, acao, custo, valor)
             if (ncont_anterior != ncont):       #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
-                reward += posicao             #soma reward           
+                reward += posicao             #soma reward     
+            
+            modelo.remember(estado, acao, reward, [ncont, valor, posicao])
+            if len(modelo.memory) > memoria:
+                modelo.replay(memoria)
             
     reward += posicao - custo*abs(ncont)            #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
     return reward

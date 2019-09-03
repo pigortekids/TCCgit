@@ -25,13 +25,13 @@ class DQNAgent:
         model = Sequential()
         model.add(Dense(n_neuronios, activation='relu'))                    #CAMADA DE ENTRADA
         model.add(Dense(n_neuronios, activation='relu'))                    #CAMADA ESCONDIDA 1
-        model.add(Dense(self.action_size, activation='tanh'))             #CAMADA DE SAIDA
+        model.add(Dense(self.action_size, activation='tanh'))               #CAMADA DE SAIDA
         model.compile(loss='mse',
                       optimizer=Adam(lr=self.learning_rate))
         return model
 
-    def remember(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
+    def remember(self, state, action, reward, next_state):
+        self.memory.append((state, action, reward, next_state))
 
     def act(self, state):
         if np.random.rand() <= self.epsilon:
