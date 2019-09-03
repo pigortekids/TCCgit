@@ -36,7 +36,7 @@ dias = 0
 steps = []   # 9h04 -> 17h50 a cada 5 segundos 
 epocas = 100
 memoria = 50
-variaveis = 6
+variaveis = 8
 n_entradas = memoria * variaveis + 3 #ncont, valor, posicao e inputs
 n_saidas = 3
 n_neuronios = 4
@@ -52,7 +52,7 @@ directory = str(Path.cwd())
 
 ####################### LEITURA DOS DADOS #######################################################
 arquivo = pd.read_csv("./Consolidado.csv")
-inputs = arquivo[['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min']]
+inputs = arquivo[['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP']]
 dt = arquivo['dt'].values
 pmax = np.amax(inputs.loc[:, inputs.columns[0]])
 pmin = np.amin(inputs.loc[:, inputs.columns[0]])
