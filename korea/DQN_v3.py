@@ -35,13 +35,13 @@ class NeuralNetwork:
 dias = 0
 steps = []   # 9h04 -> 17h50 a cada 5 segundos 
 epocas = 100
-memoria = 1
 variaveis = 8                       #'preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'
-n_entradas = memoria * variaveis + 3 #ncont, valor, posicao e inputs
+n_entradas = variaveis + 3 #ncont, valor, posicao e inputs
 n_saidas = 3
 n_neuronios = 4
 best_rewards = 0
 best_pesos = np.zeros(n_entradas)
+batch_size = 3
 custo = 1.06/2
 
 teste = False   
@@ -117,26 +117,25 @@ def rodar_1dia(precos, custo, dia):
     posicao = 0
     ncont_anterior = 0
     for step in range(steps[dia-1], steps[dia]):  #roda os dados
-        if step - steps[dia-1] > memoria:
-            ultimos_precos = precos[step - memoria : step] #filtra só o dia que esta
-            estado = np.append([ncont, valor, posicao], ultimos_precos)     #posição e mercado
-            acao = obter_acao(estado)            #obtem ação
-            ncont, valor, posicao, ncont_anterior = atuacao(precos['preco'][step], ncont, acao, custo, valor)
-            if (ncont_anterior != ncont):       #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
-                reward += posicao             #soma reward
-            """print(f"acao: {acao}\n")
-            print(f"ncont: {ncont}")
-            print(f"valor posicionado: {valor}")
-            print(f"lucro instantaneo: {posicao}")
-            print(f"-------------------------------\n")"""
-            ultimos_precos = precos[step - memoria + 1 : step + 1] #filtra só o dia que esta
-            prox_estado = np.append([ncont, valor, posicao], ultimos_precos)     #posição e mercado
-            next_state = np.reshape(prox_estado, [1, n_entradas])
-            modelo.remember(estado, acao, reward, next_state, step)
-            if len(modelo.memory) > n_entradas:
-                modelo.replay(50)#n_entradas)
-        #print(step)
-
+        #if step - steps[dia-1] > memoria:
+        ultimos_precos = precos[step:step+1] #filtra só o dia que esta
+        estado = np.append([ncont, valor, posicao], ultimos_precos)     #posição e mercado
+        acao = obter_acao(estado)            #obtem ação
+        ncont, valor, posicao, ncont_anterior = atuacao(precos['preco'][step], ncont, acao, custo, valor)
+        if (ncont_anterior != ncont):       #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
+            reward += posicao             #soma reward
+        """print(f"acao: {acao}\n")
+        print(f"ncont: {ncont}")
+        print(f"valor posicionado: {valor}")
+        print(f"lucro instantaneo: {posicao}")
+        print(f"-------------------------------\n")"""
+        ultimos_precos = precos[step + 1 : step + 2] #filtra só o dia que esta
+        prox_estado = np.append([ncont, valor, posicao], ultimos_precos)     #posição e mercado
+        next_state = np.reshape(prox_estado, [1, n_entradas])
+        modelo.remember(estado, acao, reward, next_state, step)
+        if len(modelo.memory) > batch_size:
+            modelo.replay(batch_size)
+            
     reward += posicao - custo*abs(ncont)            #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
     return reward
 
