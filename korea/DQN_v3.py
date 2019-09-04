@@ -1,68 +1,31 @@
-# -- coding: utf-8 --
-"""
-Created on Thu Aug 22 23:11:22 2019
-@author: Bruno
-ALGORITMO DEEP Q-LEARNING NO MERCADO FUTURO
-v1
-"""
 import numpy as np
 import pandas as pd
 from pathlib import Path
 import DQNModel_v3 as dqn
 
-################### REDE NEURAL ################################################
-def sigmoid(x):
-    return (1 / (1 + np.exp(-x)))
-
-class NeuralNetwork:
-    def _init_(self, n_entradas, n_saidas, num_neurons):
-        self.n_entradas = n_entradas
-        self.n_saidas = n_saidas
-        self.num_neurons = num_neurons
-        self.reset_pesos()
-    
-    def reset_pesos(self):
-        self.weights1 = np.random.rand(self.n_entradas, self.num_neurons) #pesos da camada de entrada para a primeira camada escondida
-        self.weights2 = np.random.rand(self.num_neurons, self.n_saidas) #pesos da primeira camada escondida para a saida
-
-    def feedforward(self, inputs):
-        self.layer1 = sigmoid(np.dot(inputs, self.weights1)) #valores da entrada para a primeira camada escondida
-        self.saida = sigmoid(np.dot(self.layer1, self.weights2)) #valores da primeira camada escondida para a saida
-        decisao = np.argmax(self.saida) #pega o maior valor do vetor de saida
-        return decisao #retorna a decisão da rede
-
 ##################### INICIALIZAÇÃO DE VARIÁVEIS ################################################
-dias = 0
-steps = []   # 9h04 -> 17h50 a cada 5 segundos 
-epocas = 100
-variaveis = 8                       #'preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'
+steps = [] # 9h04 -> 17h50 a cada 5 segundos 
+dias = 300 #quantidade de dias que vai rodar
+epocas = 100 #quantidade de vezes que vai rodar todos os dias
+batch_size = 3 #quantidade de valores para batelada
+variaveis = 8 #'preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'
 n_entradas = variaveis + 3 #ncont, valor, posicao e inputs
-n_saidas = 3
-n_neuronios = 4
-best_rewards = 0
-best_pesos = np.zeros(n_entradas)
-batch_size = 3
-custo = 1.06/2
-
-teste = False   
-salvar_pesos = False
-directory = str(Path.cwd())
-#if teste:
- #   best_pesos = np.load(directory + "/pesos.npy")
+n_saidas = 3 #número de saidas da rede (compra, vende, segura)
+custo = 1.06/2 #custo da operação
+caminho_arquivo = "C:/Users/mtzcpd1669/Desktop/Consolidado.csv" #caminho para o arquivo de inputs
+index_arquivo = ['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'] #index do arquivo
 
 ####################### LEITURA DOS DADOS #######################################################
-arquivo = pd.read_csv("./Consolidado.csv")
-inputs = arquivo[['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP']]
-dt = arquivo['dt'].values
-pmax = np.amax(inputs.loc[:, inputs.columns[0]])
-pmin = np.amin(inputs.loc[:, inputs.columns[0]])
-for i in range(inputs.shape[1]):
-    imax = np.amax(inputs.loc[:, inputs.columns[i]])
-    imin = np.amin(inputs.loc[:, inputs.columns[i]])
+arquivo = pd.read_csv(caminho_arquivo)
+inputs = arquivo[index_arquivo]
+pmax = np.amax(inputs.loc[:, inputs.columns[0]]) #define valor minimo do preço
+pmin = np.amin(inputs.loc[:, inputs.columns[0]]) #define valor maximo do preço
+for i in range(inputs.shape[1]): #roda normalização para todas as colunas
+    imax = np.amax(inputs.loc[:, inputs.columns[i]]) #pega valor maximo
+    imin = np.amin(inputs.loc[:, inputs.columns[i]]) #pega valor minimo
     inputs.loc[:, inputs.columns[i]] = (inputs.loc[:, inputs.columns[i]] - imin)/(imax - imin) #normaliza preços
 
-#RNA = NeuralNetwork(n_entradas, n_saidas, n_neuronios) #cria uma rede com os valores do estado como entrada
-
+dt = arquivo['dt'].values #cria coluna apenas dos dias
 steps.append(0)
 for i in range(1,len(dt)):
     if (dt[i] != dt[i-1]):
@@ -70,26 +33,26 @@ for i in range(1,len(dt)):
 dias = len(steps)
 
 ########################  DECLARA MODELO ################################
-modelo = dqn.DQNAgent(n_saidas, n_entradas)
+modelo = dqn.DQNAgent(n_entradas, n_saidas)
 
 ########################### FUNÇÕES ###############################################################
 
 def atuacao(preco, ncont, acao, custo, valor):  #preço atual, nº de contratos posicionados,
-                                         #ação atual, custo, valor da posição
+                                                #ação atual, custo, valor da posição
     valor_cheio = 0.
-    ncont_anterior = ncont              #salva posição anterior
-    ncont += acao                       #posição atual = pos anterior + ação
+    ncont_anterior = ncont #salva posição anterior
+    ncont += acao #posição atual = pos anterior + ação
     
     if valor != 0:
         valor_cheio = (valor*(pmax-pmin)+pmin)  #valor posicionado atual
 
-    dp = (preco*(pmax-pmin)+pmin) - valor_cheio            #variação do preço atual e do preço de compra/venda
-    posicao = ncont_anterior*dp*10 - custo*abs(acao)       #posicao = lucro - custo (INSTANTÂNEO)
+    dp = (preco*(pmax-pmin)+pmin) - valor_cheio #variação do preço atual e do preço de compra/venda
+    posicao = ncont_anterior*dp*10 - custo*abs(acao) #posicao = lucro - custo (INSTANTÂNEO)
 
     #calculos sobre o valor    
-    if ( (ncont_anterior>=1 and acao==1) or (ncont_anterior<=-1 and acao==-1) ):    #aumento do nº de contratos
-        valor = abs( (ncont_anterior*valor + acao*preco) / ncont )     #calcula preço medio da posição
-    elif ( ncont_anterior==0 and acao != 0 ):       #primeiro valor
+    if ( (ncont_anterior>=1 and acao==1) or (ncont_anterior<=-1 and acao==-1) ): #aumento do nº de contratos
+        valor = abs( (ncont_anterior*valor + acao*preco) / ncont ) #calcula preço medio da posição
+    elif ( ncont_anterior==0 and acao != 0 ): #primeiro valor
         valor = preco
     elif  ( ncont==0 ):
         valor = 0
@@ -97,61 +60,52 @@ def atuacao(preco, ncont, acao, custo, valor):  #preço atual, nº de contratos 
 
     return ncont, valor, posicao, ncont_anterior
 
-"""função para obter a decisão"""
 def obter_acao(estado):
-    estado = np.reshape(estado, [1, n_entradas])
-    decisao = modelo.act(estado) #calcula a saida da rede neural
+    decisao = modelo.toma_acao(estado) #calcula a saida da rede neural
 
     if decisao == 0: #comprar
-        if  estado[0][0] < 1:
+        if  estado[0][0] < 1: #só compra se não tem nada ainda
             return 1
     elif decisao == 1: #vender
-        if  estado[0][0] > -1:
+        if  estado[0][0] > -1: #só vende se tiver alguma coisa
             return -1
     return 0 #neutro
 
 def rodar_1dia(precos, custo, dia):
-    ncont = 0       # reinicia nº de contratos
-    valor = 0       # reinicia preço medio
-    reward = 0
-    posicao = 0
-    ncont_anterior = 0
+    ncont = 0 #cria variavel de quantidade de contratos
+    ncont_anterior = 0 #cria variavel para quantidade de contratos anterior
+    valor = 0 #cria variavel para preço medio
+    reward = 0 #cria variavel para recompensa
+    posicao = 0 #cria variavel de posição 
+
     for step in range(steps[dia-1], steps[dia]):  #roda os dados
-        #if step - steps[dia-1] > memoria:
         ultimos_precos = precos[step:step+1] #filtra só o dia que esta
-        estado = np.append([ncont, valor, posicao], ultimos_precos)     #posição e mercado
-        acao = obter_acao(estado)            #obtem ação
+        estado = np.array([np.append([ncont, valor, posicao], ultimos_precos)]) #posição e mercado
+        acao = obter_acao(estado) #obtem ação
         ncont, valor, posicao, ncont_anterior = atuacao(precos['preco'][step], ncont, acao, custo, valor)
-        if (ncont_anterior != ncont):       #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
-            reward += posicao             #soma reward
-        """print(f"acao: {acao}\n")
-        print(f"ncont: {ncont}")
-        print(f"valor posicionado: {valor}")
-        print(f"lucro instantaneo: {posicao}")
-        print(f"-------------------------------\n")"""
+        if (ncont_anterior != ncont): #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
+            reward += posicao #soma reward
         ultimos_precos = precos[step + 1 : step + 2] #filtra só o dia que esta
-        prox_estado = np.append([ncont, valor, posicao], ultimos_precos)     #posição e mercado
-        next_state = np.reshape(prox_estado, [1, n_entradas])
-        modelo.remember(estado, acao, reward, next_state, step)
-        if len(modelo.memory) > batch_size:
-            modelo.replay(batch_size)
+        prox_estado = np.array([np.append([ncont, valor, posicao], ultimos_precos)]) #posição e mercado
+        modelo.adiciona_memoria(estado, acao, reward, prox_estado, step) #guarda o step na memoria
+        if len(modelo.memoria) > batch_size: #se ja tem memoria suficiente
+            modelo.treina_modelo(batch_size) #roda o modelo
             
-    reward += posicao - custo*abs(ncont)            #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
-    return reward
+    reward += posicao - custo*abs(ncont) #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
+    return reward #retorna o valor do reward
 
 def rodar_dias(precos, custo):   
-    sum_rewards = 0
-
-    for dia in range(1, dias):                              #loop de dias
-        sum_rewards += rodar_1dia(precos, custo, dia)
-        print("dia: %0.d: R$ %0.2f" %(dia,sum_rewards))
-        input("")
+    sum_rewards = 0 #cria variavel de somatoria de recompensas
+    for dia in range(1, dias): #loop de dias
+        sum_rewards += rodar_1dia(precos, custo, dia) #roda 1 dia e adiciona o total na variavel de somatoria
+        print("dia: %0.d: R$ %0.2f" %(dia, sum_rewards)) #mostra o resultado do dia
     return sum_rewards
 
-for epoca in range(epocas):
-    sum_rewards = rodar_dias(inputs, custo)
-    print(f"epoca {epoca}\n")
-    if teste:
-        break
-    if salvar_pesos:
-        np.save(directory + "/pesos.npy", best_pesos)
+
+if __name__ == "__main__":
+    try:
+        for epoca in range(epocas): #rodar uma quantidade de epocas
+            print(f"epoca {epoca}\n") #mostra que epoca vai rodar
+            sum_rewards = rodar_dias(inputs, custo) #adiciona o resultado da epoca na somatoria
+    finally:
+        modelo.salva_pesos('./pesos.h5')
