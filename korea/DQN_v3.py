@@ -12,7 +12,8 @@ variaveis = 8 #'preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 
 n_entradas = variaveis + 3 #ncont, valor, posicao e inputs
 n_saidas = 3 #número de saidas da rede (compra, vende, segura)
 custo = 1.06/2 #custo da operação
-caminho_arquivo = "C:/Users/mtzcpd1669/Desktop/Consolidado.csv" #caminho para o arquivo de inputs
+melhor_reward = 0
+caminho_arquivo = "./Consolidado.csv" #caminho para o arquivo de inputs
 index_arquivo = ['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'] #index do arquivo
 
 ####################### LEITURA DOS DADOS #######################################################
@@ -72,6 +73,7 @@ def obter_acao(estado):
     return 0 #neutro
 
 def rodar_1dia(precos, custo, dia):
+    global melhor_reward
     ncont = 0 #cria variavel de quantidade de contratos
     ncont_anterior = 0 #cria variavel para quantidade de contratos anterior
     valor = 0 #cria variavel para preço medio
@@ -92,6 +94,8 @@ def rodar_1dia(precos, custo, dia):
             modelo.treina_modelo(batch_size) #roda o modelo
             
     reward += posicao - custo*abs(ncont) #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
+    if reward > melhor_reward:
+        melhor_reward = reward
     return reward #retorna o valor do reward
 
 def rodar_dias(precos, custo):   
@@ -109,3 +113,4 @@ if __name__ == "__main__":
             sum_rewards = rodar_dias(inputs, custo) #adiciona o resultado da epoca na somatoria
     finally:
         modelo.salva_pesos('./pesos.h5')
+        print(f"Melhor resultado diário: {melhor_reward}")
