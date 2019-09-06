@@ -1,21 +1,24 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
-import DQNModel_v3 as dqn
+import DQNModel_v4 as dqn
 
 ##################### INICIALIZAÇÃO DE VARIÁVEIS ################################################
 steps = [] # 9h04 -> 17h50 a cada 5 segundos 
 dias = 300 #quantidade de dias que vai rodar
-epocas = 100 #quantidade de vezes que vai rodar todos os dias
+epocas = 10000 #quantidade de vezes que vai rodar todos os dias
+janela = 10
 batch_size = 3 #quantidade de valores para batelada
 variaveis = 8 #'preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'
-n_entradas = variaveis + 3 #ncont, valor, posicao e inputs
+n_entradas = variaveis * janela + 3 #ncont, valor, posicao e inputs
 n_saidas = 3 #número de saidas da rede (compra, vende, segura)
 custo = 1.06/2 #custo da operação
 melhor_reward = 0
 caminho_arquivo = "./Consolidado.csv" #caminho para o arquivo de inputs
 index_arquivo = ['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'] #index do arquivo
-
+epsilon = 1.0
+epsilon_min = 0.0001
+epsilon_decay = (epsilon - epsilon_min)/epocas
 ####################### LEITURA DOS DADOS #######################################################
 arquivo = pd.read_csv(caminho_arquivo)
 inputs = arquivo[index_arquivo]
@@ -34,7 +37,7 @@ for i in range(1,len(dt)):
 dias = len(steps)
 
 ########################  DECLARA MODELO ################################
-modelo = dqn.DQNAgent(n_entradas, n_saidas)
+modelo = dqn.DQNAgent(n_entradas, n_saidas, epsilon, janela)
 
 ########################### FUNÇÕES ###############################################################
 
@@ -90,11 +93,12 @@ def rodar_1dia(precos, custo, dia):
             
         ultimos_precos = precos[step + 1 : step + 2] #filtra só o dia que esta
         prox_estado = np.array([np.append([ncont, valor, posicao], ultimos_precos)]) #posição e mercado
-        modelo.adiciona_memoria(estado, acao, reward, prox_estado, step) #guarda o step na memoria
-        if len(modelo.memoria) > batch_size: #se ja tem memoria suficiente
-            modelo.treina_modelo(batch_size) #roda o modelo
+        modelo.adiciona_memoria(estado, acao, reward, prox_estado) #guarda o step na memoria
+        if len(modelo.memoria) > janela: #se ja tem memoria suficiente
+            modelo.treina_modelo(janela) #roda o modelo
             
     reward += posicao - custo*abs(ncont) #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
+    modelo.limpa_memoria(janela)
     if reward > melhor_reward:
         melhor_reward = reward
     return reward #retorna o valor do reward
@@ -112,6 +116,7 @@ if __name__ == "__main__":
         for epoca in range(epocas): #rodar uma quantidade de epocas
             print(f"epoca {epoca}\n") #mostra que epoca vai rodar
             sum_rewards = rodar_dias(inputs, custo) #adiciona o resultado da epoca na somatoria
+            modelo.epsilon -= epsilon_decay
     finally:
         modelo.salva_pesos('./pesos.h5')
         print(f"Melhor resultado diário: {melhor_reward}")
