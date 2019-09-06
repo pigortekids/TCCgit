@@ -27,7 +27,7 @@ class DQNAgent:
         model.add(Dense(24, input_dim=self.state_size, activation='relu')) #camada de entrada
         model.add(Dense(24, activation='relu')) #camada escondida
         model.add(Dense(self.action_size, activation='softmax')) #camada de saida
-        model.compile(loss='categorical-crossentropy', optimizer=Adam(lr=self.learning_rate)) #compilador
+        model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=self.learning_rate)) #compilador
         return model
 
     def adiciona_memoria(self, state, action, reward, next_state, step, done=False):
@@ -44,6 +44,7 @@ class DQNAgent:
         for state, action, reward, next_state, step, done in minibatch:
             target = reward
             if not done:
+                print(next_state.shape)
                 target = (reward + self.gamma * np.amax(self.model.predict(next_state)[0]))
             target_f = self.model.predict(state)
             target_f[0][action] = target

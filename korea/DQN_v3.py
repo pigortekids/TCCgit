@@ -13,7 +13,8 @@ n_entradas = variaveis + 3 #ncont, valor, posicao e inputs
 n_saidas = 3 #número de saidas da rede (compra, vende, segura)
 custo = 1.06/2 #custo da operação
 melhor_reward = 0
-caminho_arquivo = "./Consolidado.csv" #caminho para o arquivo de inputs
+caminho_arquivo = "H:/TCC/ArquivoFinal/v8/consolidado2.csv"
+#caminho_arquivo = "./Consolidado.csv" #caminho para o arquivo de inputs
 index_arquivo = ['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'] #index do arquivo
 
 ####################### LEITURA DOS DADOS #######################################################
