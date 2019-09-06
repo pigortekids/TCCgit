@@ -32,17 +32,17 @@ class DQNAgent:
         return model
 
     def limpa_memoria(self):
-        self.state = np.empty((0, 0))
-        self.next_state = np.empty((0, 0))
+        self.state = np.empty((0,))
+        self.next_state = np.empty((0,))
         
-    def toma_acao(self):
+    def toma_acao(self, valores_ant):
         if np.random.rand() <= self.epsilon: #se o numero aleatorio for menor que o epsilon
             return random.randrange(self.action_size) #retorna ação aleatoria
-        act_values = self.model.predict(self.state) #calcula qual a melhor ação
+        estado = np.array([np.append(self.state, valores_ant)]) #cria valor de agora
+        act_values = self.model.predict(estado) #calcula qual a melhor ação
         return np.argmax(act_values[0])  # returns action
 
     def treina_modelo(self, acao, reward, valores_ant, valores_dps):
-        
         prox_estado = np.array([np.append(self.next_state, valores_dps)]) #cria proximo estado
         target = (reward + self.gamma * np.amax(self.model.predict(prox_estado)[0])) #pega valor que quer chegar
         

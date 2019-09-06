@@ -2,12 +2,10 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import DQNModel_v4 as dqn
-import matplotlib
 import matplotlib.pyplot as plt
 
 ##################### INICIALIZAÇÃO DE VARIÁVEIS ################################################
 steps = [] # 9h04 -> 17h50 a cada 5 segundos 
-dias = 300 #quantidade de dias que vai rodar
 epocas = 10000 #quantidade de vezes que vai rodar todos os dias
 janela = 10 #janela de valores
 n_variaveis = 8 #'preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'
@@ -22,8 +20,8 @@ index_arquivo = ['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND'
 epsilon = 1.0 #valor de epsilon
 epsilon_min = 0.0001 #valor minimo de epsilon
 epsilon_decay = (epsilon - epsilon_min) / epocas #o valor que vai retirado do epsilon por epoca
-rewards = [] #variavel para guardar rewards
-plotx = [] #variavel para guardar valores a serem plotados do eixo x
+rewards = [0] #variavel para guardar rewards
+plotx = [0] #variavel para guardar valores a serem plotados do eixo x
 
 ####################### LEITURA DOS DADOS #######################################################
 arquivo = pd.read_csv(caminho_arquivo)
@@ -71,8 +69,8 @@ def atuacao( preco, ncont, acao, custo, valor ):  #preço atual, nº de contrato
 
     return ncont, valor, posicao, ncont_anterior
 
-def obter_acao(ncont):
-    decisao = modelo.toma_acao() #calcula a saida da rede neural
+def obter_acao(ncont, valores_ant):
+    decisao = modelo.toma_acao(valores_ant) #calcula a saida da rede neural
 
     if decisao == 0: #comprar
         if  ncont < 1: #só compra se não tem nada ainda
@@ -89,6 +87,7 @@ def rodar_1dia(precos, custo, dia):
     valor = 0 #cria variavel para preço medio
     reward = 0 #cria variavel para recompensa
     posicao = 0 #cria variavel de posição 
+    modelo.limpa_memoria()
 
     for step in range( steps[ dia - 1 ], steps[dia] ):  #roda os dados
         
@@ -96,10 +95,11 @@ def rodar_1dia(precos, custo, dia):
         modelo.state = np.append(modelo.state, ultimos_precos) #adiciona na variavel de estado
         valores_ant = [ncont, valor, posicao] #grava os valores de antes
 
-        acao = obter_acao(ncont) #obtem ação
-        ncont, valor, posicao, ncont_anterior = atuacao(precos['preco'][step], ncont, acao, custo, valor)
-        if (ncont_anterior != ncont): #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
-            reward += posicao #soma reward
+        if modelo.state.shape[0] == janela * n_variaveis: #se ja tem memoria suficiente
+            acao = obter_acao(ncont, valores_ant) #obtem ação
+            ncont, valor, posicao, ncont_anterior = atuacao(precos['preco'][step], ncont, acao, custo, valor)
+            if (ncont_anterior != ncont): #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
+                reward += posicao #soma reward
             
         prox_precos = precos[ step + 1 : step + 2 ] #pega os proximos valores
         modelo.next_state = np.append(modelo.next_state, prox_precos) #adiciona variavel na variavel de proximo estado
@@ -109,18 +109,17 @@ def rodar_1dia(precos, custo, dia):
             modelo.treina_modelo(acao, posicao, valores_ant, valores_dps) #roda o modelo
             
     reward += posicao - custo * abs(ncont) #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
-    modelo.limpa_memoria()
     if reward > melhor_reward:
         melhor_reward = reward
     return reward #retorna o valor do reward
 
-def rodar_dias(precos, custo):   
+def rodar_dias(precos, custo, epoca):   
     sum_rewards = 0 #cria variavel de somatoria de recompensas
     for dia in range( 1, dias ): #loop de dias
         reward = rodar_1dia(precos, custo, dia)
         sum_rewards += reward #roda 1 dia e adiciona o total na variavel de somatoria
         rewards.append(reward) #guarda o valor do reward
-        plotx.append(dia) #guarda o valor do dia
+        plotx.append(np.max(plotx) + 1) #guarda o valor do dia
         print("dia: %0.d: R$ %0.2f" %(dia, reward)) #mostra o resultado do dia
     return sum_rewards
 
@@ -129,7 +128,7 @@ if __name__ == "__main__":
     try:
         for epoca in range(epocas): #rodar uma quantidade de epocas
             print(f"epoca {epoca}\n") #mostra que epoca vai rodar
-            sum_rewards = rodar_dias(inputs, custo) #adiciona o resultado da epoca na somatoria
+            sum_rewards = rodar_dias(inputs, custo, epoca) #adiciona o resultado da epoca na somatoria
             modelo.epsilon -= epsilon_decay
     finally:
         modelo.salva_pesos('./pesos.h5')
