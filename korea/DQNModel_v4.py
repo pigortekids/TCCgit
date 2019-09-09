@@ -35,8 +35,8 @@ class DQNAgent:
         self.state = np.empty((0,))
         self.next_state = np.empty((0,))
         
-    def toma_acao(self, valores_ant):
-        if np.random.rand() <= self.epsilon: #se o numero aleatorio for menor que o epsilon
+    def toma_acao(self, valores_ant, teste):
+        if not teste and np.random.rand() <= self.epsilon: #se o numero aleatorio for menor que o epsilon
             return random.randrange(self.action_size) #retorna ação aleatoria
         estado = np.array([np.append(self.state, valores_ant)]) #cria valor de agora
         act_values = self.model.predict(estado) #calcula qual a melhor ação
