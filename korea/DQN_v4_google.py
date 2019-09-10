@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import DQNModel_v4 as dqn
 #import matplotlib.pyplot as plt
+import random
 
 ##################### INICIALIZAO DE VARIAVEIS ################################################
 steps = [] # 9h04 -> 17h50 a cada 5 segundos 
@@ -13,20 +14,24 @@ n_neuronios = 64 #numero de neuronios da camada escondida
 n_saidas = 3 #nmero de saidas da rede (compra, vende, segura)
 custo = 1.06/2 #custo da operao
 melhor_reward = 0
-#caminho_arquivo = "C:/Users/Odete/Desktop/consolidado.csv"
-caminho_arquivo = "./consolidado.csv" #caminho para o arquivo de inputs
+posicao_max = 1 #define variavel para normalizar a posicao
+versao_arquivo = 1
+caminho_arquivo = "C:/Users/Odete/Desktop/consolidado.csv"
+#caminho_arquivo = "./consolidado2.csv" #caminho para o arquivo de inputs
 index_arquivo = ['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'] #index do arquivo
 epsilon = 1.0 #valor de epsilon
 epsilon_min = 0.0001 #valor minimo de epsilon
 epsilon_decay = (epsilon - epsilon_min) / epocas #o valor que vai retirado do epsilon por epoca
 rewards = [0] #variavel para guardar rewards
 plotx = [0] #variavel para guardar valores a serem plotados do eixo x
-teste = True
+teste = False
 qnt_testes = 10
 
 ####################### LEITURA DOS DADOS #######################################################
-arquivo = pd.read_csv(caminho_arquivo)
+arquivo = pd.read_csv(caminho_arquivo) #le arquivo
 inputs = arquivo[index_arquivo]
+if versao_arquivo == 1: #se quiser usar apenas os dias com IND e ISP
+    inputs = inputs[inputs['IND'] != 0]
 pmax = np.amax( inputs.loc[:, inputs.columns[0]] ) #define valor minimo do preo
 pmin = np.amin( inputs.loc[:, inputs.columns[0]] ) #define valor maximo do preo
 
@@ -36,10 +41,16 @@ for i in range( inputs.shape[1] ): #roda normalizo para todas as colunas
     inputs.loc[:, inputs.columns[i]] = ( inputs.loc[:, inputs.columns[i]] - imin ) / ( imax - imin ) #normaliza prs
 
 dt = arquivo['dt'].values #cria coluna apenas dos dias
-steps.append(0)
-for i in range( 1, len(dt) ):
-    if (dt[i] != dt[i-1]):
-        steps.append(i)     #numero de linhas entre dias
+steps = []
+ultimo_dia = 0
+dias_para_rodar = [] #variavel para colocar os dias a serem rodados
+j = 0
+for i in range( 0, len(dt) ):
+    if (dt[i] != ultimo_dia):
+        steps.append(i) #numero de linhas entre dias
+        ultimo_dia = dt[i]
+        dias_para_rodar.append(j) #numero do dia
+        j += 1
 dias = len(steps)
 
 ########################  DECLARA MODELO ################################
@@ -58,11 +69,16 @@ def atuacao( preco, ncont, acao, custo, valor ):  #preo atual, n de contratos po
 
     dp = ( preco * ( pmax - pmin ) + pmin ) - valor_cheio #variao do preo atual e do preo de compra/venda
     posicao = ncont_anterior * dp * 10 - custo * abs(acao) #posicao = lucro - custo (INSTANTNEO)
+    
+    global posicao_max
+    if posicao_max < posicao:
+        posicao_max = posicao
+    posicao = posicao / posicao_max #normaliza posicao
 
     #calculos sobre o valor    
     if ( ncont_anterior == 0 and acao != 0 ): #primeiro valor
         valor = preco
-    elif  ( ncont == 0 ):
+    elif ( ncont == 0 ):
         valor = 0
     #caso nao se encaixe nessas condies: valor = valor (nada muda)
 
@@ -86,9 +102,10 @@ def rodar_1dia(precos, custo, dia):
     valor = 0 #cria variavel para preo medio
     reward = 0 #cria variavel para recompensa
     posicao = 0 #cria variavel de posio 
-    modelo.limpa_memoria()
+    modelo.limpa_memoria() #limpa o vetor de memoria
 
-    for step in range( steps[ dia - 1 ], steps[dia] ):  #roda os dados
+    dia_para_rodar = dias_para_rodar[dia] #pega um dia random para rodar
+    for step in range( steps[ dia_para_rodar - 1 ], steps[dia_para_rodar] ):  #roda os dados
         
         ultimos_precos = precos[ step : step + 1 ] #pega os valores de agora
         modelo.state = np.append( modelo.state, ultimos_precos ) #adiciona na variavel de estado
@@ -117,12 +134,13 @@ def rodar_1dia(precos, custo, dia):
 
 def rodar_dias(precos, custo):   
     sum_rewards = 0 #cria variavel de somatoria de recompensas
+    random.shuffle(dias_para_rodar) #randomiza vetor de dias
     for dia in range( 1, dias ): #loop de dias
         reward = rodar_1dia(precos, custo, dia)
         sum_rewards += reward #roda 1 dia e adiciona o total na variavel de somatoria
         rewards.append(reward) #guarda o valor do reward
         plotx.append(np.max(plotx) + 1) #guarda o valor do dia
-        print("dia: {0}: R$ {1:0.2f}".format(dia, reward)) #mostra o resultado do dia
+        print("dia: {0}: R$ {1:0.2f}".format(dia, reward * posicao_max)) #mostra o resultado do dia
     return sum_rewards
 
 if __name__ == "__main__":
@@ -134,17 +152,17 @@ if __name__ == "__main__":
                 print("teste {0}\n".format(t)) #mostra que epoca vai rodar
                 sum_rewards = rodar_dias(inputs, custo) #adiciona o resultado da epoca na somatoria
                 sum_rewards_total += sum_rewards
-                print("resultado do teste {0} = {1:0.2f}".format(t, sum_rewards))
+                print("resultado do teste {0} = {1:0.2f}".format(t, sum_rewards * posicao_max))
         else:
             for epoca in range(epocas): #rodar uma quantidade de epocas
                 print("epoca {0}\n".format(epoca)) #mostra que epoca vai rodar
                 sum_rewards = rodar_dias(inputs, custo) #adiciona o resultado da epoca na somatoria
                 sum_rewards_total += sum_rewards
-                print("resultado da epoca {0} = {1:0.2f}".format(epoca, sum_rewards))
+                print("resultado da epoca {0} = {1:0.2f}".format(epoca, sum_rewards * posicao_max))
                 modelo.epsilon -= epsilon_decay
     finally:
         if teste != True:
             modelo.salva_pesos('./pesos.h5')
-        print("Somatoria dos rewards: {0:0.2f}".format(sum_rewards_total))
-        print("Melhor resultado diario: {0:0.2f}".format(melhor_reward))
+        print("Somatoria dos rewards: {0:0.2f}".format(sum_rewards_total * posicao_max))
+        print("Melhor resultado diario: {0:0.2f}".format(melhor_reward * posicao_max))
         #plt.plot(plotx, rewards) #plota os valores de reward por dia
