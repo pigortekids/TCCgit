@@ -14,7 +14,7 @@ n_neuronios = 64 #numero de neuronios da camada escondida
 n_saidas = 3 #nmero de saidas da rede (compra, vende, segura)
 custo = 1.06/2 #custo da operao
 melhor_reward = 0
-posicao_max = 1 #define variavel para normalizar a posicao
+posicao_max = 100 #define variavel para normalizar a posicao
 versao_arquivo = 1
 caminho_arquivo = "C:/Users/Odete/Desktop/consolidado.csv"
 #caminho_arquivo = "./consolidado2.csv" #caminho para o arquivo de inputs
@@ -69,11 +69,6 @@ def atuacao( preco, ncont, acao, custo, valor ):  #preo atual, n de contratos po
 
     dp = ( preco * ( pmax - pmin ) + pmin ) - valor_cheio #variao do preo atual e do preo de compra/venda
     posicao = ncont_anterior * dp * 10 - custo * abs(acao) #posicao = lucro - custo (INSTANTNEO)
-    
-    global posicao_max
-    if posicao_max < posicao:
-        posicao_max = posicao
-    posicao = posicao / posicao_max #normaliza posicao
 
     #calculos sobre o valor    
     if ( ncont_anterior == 0 and acao != 0 ): #primeiro valor
@@ -110,7 +105,7 @@ def rodar_1dia(precos, custo, dia):
         ultimos_precos = precos[ step : step + 1 ] #pega os valores de agora
         modelo.state = np.append( modelo.state, ultimos_precos ) #adiciona na variavel de estado
         modelo.tira_ultimo_state()
-        valores_ant = [ncont, valor, posicao] #grava os valores de antes
+        valores_ant = [ncont, valor, posicao / posicao_max] #grava os valores de antes
 
         if modelo.state.shape[0] == janela * n_variaveis: #se ja tem memoria suficiente
             acao = obter_acao( ncont, valores_ant ) #obtem ao
@@ -122,7 +117,7 @@ def rodar_1dia(precos, custo, dia):
             prox_precos = precos[ step + 1 : step + 2 ] #pega os proximos valores
             modelo.next_state = np.append(modelo.next_state, prox_precos) #adiciona variavel na variavel de proximo estado
             modelo.tira_ultimo_state()
-            valores_dps = [ncont, valor, posicao] #grava os valores de depois
+            valores_dps = [ncont, valor, posicao / posicao_max] #grava os valores de depois
             
             if modelo.state.shape[0] == janela * n_variaveis: #se ja tem memoria suficiente
                 modelo.treina_modelo(acao, posicao, valores_ant, valores_dps) #roda o modelo
@@ -140,7 +135,7 @@ def rodar_dias(precos, custo):
         sum_rewards += reward #roda 1 dia e adiciona o total na variavel de somatoria
         rewards.append(reward) #guarda o valor do reward
         plotx.append(np.max(plotx) + 1) #guarda o valor do dia
-        print("dia: {0}: R$ {1:0.2f}".format(dia, reward * posicao_max)) #mostra o resultado do dia
+        print("dia: {0}: R$ {1:0.2f}".format(dia, reward)) #mostra o resultado do dia
     return sum_rewards
 
 if __name__ == "__main__":
@@ -152,17 +147,17 @@ if __name__ == "__main__":
                 print("teste {0}\n".format(t)) #mostra que epoca vai rodar
                 sum_rewards = rodar_dias(inputs, custo) #adiciona o resultado da epoca na somatoria
                 sum_rewards_total += sum_rewards
-                print("resultado do teste {0} = {1:0.2f}".format(t, sum_rewards * posicao_max))
+                print("resultado do teste {0} = {1:0.2f}".format(t, sum_rewards))
         else:
             for epoca in range(epocas): #rodar uma quantidade de epocas
                 print("epoca {0}\n".format(epoca)) #mostra que epoca vai rodar
                 sum_rewards = rodar_dias(inputs, custo) #adiciona o resultado da epoca na somatoria
                 sum_rewards_total += sum_rewards
-                print("resultado da epoca {0} = {1:0.2f}".format(epoca, sum_rewards * posicao_max))
+                print("resultado da epoca {0} = {1:0.2f}".format(epoca, sum_rewards))
                 modelo.epsilon -= epsilon_decay
     finally:
         if teste != True:
             modelo.salva_pesos('./pesos.h5')
-        print("Somatoria dos rewards: {0:0.2f}".format(sum_rewards_total * posicao_max))
-        print("Melhor resultado diario: {0:0.2f}".format(melhor_reward * posicao_max))
+        print("Somatoria dos rewards: {0:0.2f}".format(sum_rewards_total))
+        print("Melhor resultado diario: {0:0.2f}".format(melhor_reward))
         plt.plot(plotx, rewards) #plota os valores de reward por dia
