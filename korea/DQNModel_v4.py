@@ -39,7 +39,7 @@ class DQNAgent:
         if not teste and np.random.rand() <= self.epsilon: #se o numero aleatorio for menor que o epsilon
             return random.randrange(self.action_size) #retorna acao aleatoria
         estado = np.array([np.append(self.state, valores_ant)]) #cria valor de agora
-        act_values = self.model.predict(estado) #calcula qual a melhor acao
+        act_values = self.model.predict(estado) #calcula qual a melhor ao
         return np.argmax(act_values[0])  # returns action
 
     def treina_modelo(self, acao, reward, valores_ant, valores_dps):
@@ -52,8 +52,8 @@ class DQNAgent:
         
         self.model.fit(estado, target_f, epochs=1, verbose=0) #treina modelo
         
-        self.state = self.state[self.n_variaveis:] #tira os ultimos precos
-        self.next_state = self.next_state[self.n_variaveis:] #tira os ultimos precos
+        self.state = self.state[self.n_variaveis:] #tira os ultimos preos
+        self.next_state = self.next_state[self.n_variaveis:] #tira os ultimos preos
         
     def carrega_pesos(self, name):
         self.model.load_weights(name) #carrega pesos
