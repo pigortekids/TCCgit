@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import DQNModel_v4 as dqn
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 ##################### INICIALIZAO DE VARIAVEIS ################################################
 steps = [] # 9h04 -> 17h50 a cada 5 segundos 
@@ -131,9 +131,9 @@ if __name__ == "__main__":
         if teste == True:
             modelo.carrega_pesos('./pesos_treinados.h5')
             for t in range(qnt_testes):
-                print("teste {}\n", t) #mostra que epoca vai rodar
+#                print(f"teste {t}\n") #mostra que epoca vai rodar
                 sum_rewards = rodar_dias(inputs, custo) #adiciona o resultado da epoca na somatoria
-                print("resultado do teste {} = {}", t, sum_rewards)
+#                print(f"resultado do teste {t} = {sum_rewards}")
         else:
             for epoca in range(epocas): #rodar uma quantidade de epocas
                 print("epoca {}\n", epoca) #mostra que epoca vai rodar
@@ -144,4 +144,4 @@ if __name__ == "__main__":
         if teste != True:
             modelo.salva_pesos('./pesos.h5')
         print("Melhor resultado dirio: {}", melhor_reward)
-        plt.plot(plotx, rewards) #plota os valores de reward por dia
+        #plt.plot(plotx, rewards) #plota os valores de reward por dia
