@@ -51,8 +51,11 @@ class DQNAgent:
         
         self.model.fit(estado, target_f, epochs=1, verbose=0) #treina modelo
         
-        self.state = self.state[self.n_variaveis:] #tira os ultimos preos
-        self.next_state = self.next_state[self.n_variaveis:] #tira os ultimos preos
+    def tira_ultimo_state(self):
+        if self.state.shape[0] > self.janela * self.n_variaveis:
+            self.state = self.state[self.n_variaveis:] #tira os ultimos preos
+        if self.next_state.shape[0] > self.janela * self.n_variaveis:
+            self.next_state = self.next_state[self.n_variaveis:] #tira os ultimos preos
         
     def carrega_pesos(self, name):
         self.model.load_weights(name) #carrega pesos
