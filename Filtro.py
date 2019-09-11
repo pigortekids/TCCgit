@@ -240,7 +240,7 @@ for file in glob.glob("*.txt"): #pega arquivos com final TXT
     
     arquivo_n += 1
     fim = time.time() - inicioParcial #contabiliza o tempo do arquivo
-    print("({0}/{1}) Arquivo do dia ".format(arquivo_n, qnt_arquivos) + diaDoArquivo + " filtrado em {:.3f}".format(fim) + " segundos") #mostra o tempo que demorou pra filtrar o arquivo
+    print("({0}/{1}) Arquivo do dia {2} filtrado em {3:.3f} segundos".format(arquivo_n, qnt_arquivos, diaDoArquivo, fim)) #mostra o tempo que demorou pra filtrar o arquivo
 #######################################################################
 
 
@@ -270,7 +270,7 @@ for file in glob.glob("*.csv"): #pega arquivos com final CSV
     
     arquivo_n += 1
     fim = time.time() - inicioParcial #contabiliza o tempo do arquivo
-    print("({0}/{1}) Arquivo do dia ".format(arquivo_n, qnt_arquivos) + "Arquivo do dia " + file[11:19] + " consolidado em {:.3f}".format(fim) + " segundos") #mostra o tempo que demorou pra filtrar o arquivo
+    print("({0}/{1}) Arquivo do dia {2} consolidado em {3:.3f} segundos".format(arquivo_n, qnt_arquivos, file[11:19], fim)) #mostra o tempo que demorou pra filtrar o arquivo
 
 
 arquivoConsolidado.to_csv(pastaArquivoConsolidado + "consolidado.csv", index=None, header=True) #exporta arquivo do dia WDO
