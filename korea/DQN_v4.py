@@ -4,6 +4,9 @@ import DQNModel_v4 as dqn
 import matplotlib.pyplot as plt
 import random
 
+import tensorflow as tf
+from keras.backend.tensorflow_backend import set_session
+
 ##################### INICIALIZAO DE VARIAVEIS ################################################
 steps = [] # 9h04 -> 17h50 a cada 5 segundos 
 epocas = 10000 #quantidade de vezes que vai rodar todos os dias
@@ -15,17 +18,25 @@ n_saidas = 3 #nmero de saidas da rede (compra, vende, segura)
 custo = 1.06/2 #custo da operao
 melhor_reward = 0
 posicao_max = 100 #define variavel para normalizar a posicao
+
 versao_arquivo = 1
-caminho_arquivo = "C:/Users/Odete/Desktop/consolidado.csv"
-#caminho_arquivo = "./consolidado2.csv" #caminho para o arquivo de inputs
+#caminho_arquivo = "C:/Users/Odete/Desktop/consolidado.csv"
+caminho_arquivo = "./consolidado.csv" #caminho para o arquivo de inputs
 index_arquivo = ['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'] #index do arquivo
+
 epsilon = 1.0 #valor de epsilon
 epsilon_min = 0.0001 #valor minimo de epsilon
 epsilon_decay = (epsilon - epsilon_min) / epocas #o valor que vai retirado do epsilon por epoca
+
 rewards = [0] #variavel para guardar rewards
 plotx = [0] #variavel para guardar valores a serem plotados do eixo x
+
 teste = False
 qnt_testes = 10
+
+usar_cpu_gpu = True
+CPU_cores = 8  # If CPU, how many cores
+GPU_mem_use = 1.0  # In both cases the GPU mem is going to be used, choose fraction to use
 
 ####################### LEITURA DOS DADOS #######################################################
 arquivo = pd.read_csv(caminho_arquivo) #le arquivo
@@ -120,7 +131,7 @@ def rodar_1dia(precos, custo, dia):
             valores_dps = [ncont, valor, posicao / posicao_max] #grava os valores de depois
             
             if modelo.state.shape[0] == janela * n_variaveis: #se ja tem memoria suficiente
-                modelo.treina_modelo(acao, posicao, valores_ant, valores_dps) #roda o modelo
+                modelo.treina_modelo(acao, posicao / posicao_max, valores_ant, valores_dps) #roda o modelo
             
     reward += posicao - custo * abs(ncont) #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
     if reward > melhor_reward:
@@ -135,13 +146,25 @@ def rodar_dias(precos, custo):
         sum_rewards += reward #roda 1 dia e adiciona o total na variavel de somatoria
         rewards.append(reward) #guarda o valor do reward
         plotx.append(np.max(plotx) + 1) #guarda o valor do dia
-        print("dia: {0}: R$ {1:0.2f}".format(dia, reward)) #mostra o resultado do dia
+        print("dia {0} de {1}: R$ {2:0.2f}".format(dia, dias, reward)) #mostra o resultado do dia
     return sum_rewards
 
+def config_hard():
+    """
+    Configuration of CPU and GPU
+    """
+    config = tf.ConfigProto()
+    config = tf.ConfigProto(device_count = {'GPU': 0},
+                                intra_op_parallelism_threads=CPU_cores,
+                                inter_op_parallelism_threads=CPU_cores)
+    config.gpu_options.per_process_gpu_memory_fraction = GPU_mem_use
+    set_session(tf.Session(config=config))
+
 if __name__ == "__main__":
+    config_hard()
     sum_rewards_total = 0
     try:
-        if teste == True:
+        if teste:
             modelo.carrega_pesos('./pesos_treinados_15epocas.h5')
             for t in range(qnt_testes):
                 print("teste {0}\n".format(t)) #mostra que epoca vai rodar
@@ -156,7 +179,7 @@ if __name__ == "__main__":
                 print("resultado da epoca {0} = {1:0.2f}".format(epoca, sum_rewards))
                 modelo.epsilon -= epsilon_decay
     finally:
-        if teste != True:
+        if not teste:
             modelo.salva_pesos('./pesos.h5')
         print("Somatoria dos rewards: {0:0.2f}".format(sum_rewards_total))
         print("Melhor resultado diario: {0:0.2f}".format(melhor_reward))
