@@ -68,6 +68,8 @@ horarioFimInt = tempoStrToInt(horarioFim) #traduz o horario fim
 
 ##############################   FILTRO   #############################
 os.chdir(pastaArquivosDescompactados) #caminho da pasta de importação
+qnt_arquivos = len(glob.glob("*.txt"))
+arquivo_n = 0
 for file in glob.glob("*.txt"): #pega arquivos com final TXT
     
     
@@ -236,8 +238,9 @@ for file in glob.glob("*.txt"): #pega arquivos com final TXT
     shutil.move(pastaArquivosDescompactados + file, pastaArquivosDescompactadosJaRodados) #move o arquivo para a pasta de ja rodados
     
     
+    arquivo_n += 1
     fim = time.time() - inicioParcial #contabiliza o tempo do arquivo
-    print("Arquivo do dia " + diaDoArquivo + " filtrado em {:.3f}".format(fim) + " segundos") #mostra o tempo que demorou pra filtrar o arquivo
+    print("({0}/{1}) Arquivo do dia ".format(arquivo_n, qnt_arquivos) + diaDoArquivo + " filtrado em {:.3f}".format(fim) + " segundos") #mostra o tempo que demorou pra filtrar o arquivo
 #######################################################################
 
 
@@ -251,6 +254,8 @@ if os.path.exists(pastaArquivoConsolidado + "Consolidado.csv"): #confere se ja e
 
 
 os.chdir(pastaArquivosFiltrados) #caminho da pasta de importação
+qnt_arquivos = len(glob.glob("*.txt"))
+arquivo_n = 0
 for file in glob.glob("*.csv"): #pega arquivos com final CSV
     
     
@@ -263,8 +268,9 @@ for file in glob.glob("*.csv"): #pega arquivos com final CSV
     shutil.move(pastaArquivosFiltrados + file, pastaArquivosJaConsolidados) #move o arquivo para a pasta de ja consolidados
     
     
+    arquivo_n += 1
     fim = time.time() - inicioParcial #contabiliza o tempo do arquivo
-    print("Arquivo do dia " + file[11:19] + " consolidado em {:.3f}".format(fim) + " segundos") #mostra o tempo que demorou pra filtrar o arquivo
+    print("({0}/{1}) Arquivo do dia ".format(arquivo_n, qnt_arquivos) + "Arquivo do dia " + file[11:19] + " consolidado em {:.3f}".format(fim) + " segundos") #mostra o tempo que demorou pra filtrar o arquivo
 
 
 arquivoConsolidado.to_csv(pastaArquivoConsolidado + "consolidado.csv", index=None, header=True) #exporta arquivo do dia WDO
