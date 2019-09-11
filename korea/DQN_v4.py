@@ -161,7 +161,8 @@ def config_hard():
     set_session(tf.Session(config=config))
 
 if __name__ == "__main__":
-    config_hard()
+    if usar_cpu_gpu:
+        config_hard()
     sum_rewards_total = 0
     try:
         if teste:

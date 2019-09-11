@@ -34,7 +34,7 @@ def find_nearest_idx(array, value): # função para achar o valor mais perto em 
 
 ############################   VARIAVEIS   ############################
 HDexterno = "H:/TCC/" #coloquei isso porque fica mudando o nome do diretorio
-versao = "v8" #versão que esta sendo usada
+versao = "v9" #versão que esta sendo usada
 pastaCoisas = HDexterno + "Coisas/" #pasta com arquivos com feriados e vencimentos
 pastaArquivosDescompactados = HDexterno + "ArquivosDescompactados/" #pasta dos arquivos originais
 pastaArquivosDescompactadosJaRodados = HDexterno + "ArquivosDescompactados/JaRodados/" #pasta dos arquivos originais ja rodados
@@ -55,7 +55,7 @@ feriados = pd.read_csv(pastaCoisas + "feriadosBR.csv") #le o arquivo com os feri
 holidays = feriados['Data'] #pega só as datas
 cal = Calendar(holidays=holidays, weekdays=['Sunday', 'Saturday']) #adiciona no calendario para poder controlar
 
-periodicidade = 5 * 1000 #define a periodicidade em que o arquivo vai ser filtrado
+periodicidade = 5 * 60 * 1000 #define a periodicidade em que o arquivo vai ser filtrado
 horarioInicio = '09:05:00.000' #define horario de inicio para começar a pegar os arquivos
 horarioInicioInt = tempoStrToInt(horarioInicio) #traduz o horario inicial
 horarioFim = '17:55:00.000' #define horario de fim para terminar de pegar os arquivos
