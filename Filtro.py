@@ -254,7 +254,7 @@ if os.path.exists(pastaArquivoConsolidado + "Consolidado.csv"): #confere se ja e
 
 
 os.chdir(pastaArquivosFiltrados) #caminho da pasta de importação
-qnt_arquivos = len(glob.glob("*.txt"))
+qnt_arquivos = len(glob.glob("*.csv"))
 arquivo_n = 0
 for file in glob.glob("*.csv"): #pega arquivos com final CSV
     
