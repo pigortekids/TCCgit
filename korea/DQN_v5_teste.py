@@ -97,7 +97,7 @@ def rodar_1dia(precos, custo, dia):
     modelo.limpa_memoria() #limpa o vetor de memoria
 
     dia_para_rodar = dias_para_rodar[dia] #pega um dia random para rodar
-    for step in range( steps[dia_para_rodar], steps[dia_para_rodar + 1] ):  #roda os dados
+    for step in range( steps[dia_para_rodar - 1], steps[dia_para_rodar] ):  #roda os dados
         
         ultimos_precos = precos[ step : step + 1 ] #pega os valores de agora
         modelo.state = np.append( modelo.state, ultimos_precos ) #adiciona na variavel de estado
@@ -133,7 +133,7 @@ def rodar_dias(precos, custo):
         sum_rewards += reward #roda 1 dia e adiciona o total na variavel de somatoria
         reward_acumulado.append(reward) #guarda o valor do reward
         plotx.append(np.max(plotx) + 1) #guarda o valor do dia
-        dia_rodado = arquivo.iloc[steps[dias_para_rodar[dia]]]['dt']
+        dia_rodado = arquivo.iloc[steps[dias_para_rodar[dia] - 1]]['dt']
         print("dia {0} obteve resultado: R$ {1:0.2f}".format(dia_rodado, reward)) #mostra o resultado do dia
     return sum_rewards
 

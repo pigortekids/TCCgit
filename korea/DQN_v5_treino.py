@@ -111,7 +111,7 @@ def rodar_1dia(precos, custo, dia):
     modelo.limpa_memoria() #limpa o vetor de memoria
 
     dia_para_rodar = dias_para_rodar[dia] #pega um dia random para rodar
-    for step in range( steps[dia_para_rodar], steps[dia_para_rodar + 1] ):  #roda os dados
+    for step in range( steps[dia_para_rodar - 1], steps[dia_para_rodar] ):  #roda os dados
         
         ultimos_precos = precos[ step : step + 1 ] #pega os valores de agora
         modelo.state = np.append( modelo.state, ultimos_precos ) #adiciona na variavel de estado
