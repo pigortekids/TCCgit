@@ -24,14 +24,22 @@ caminho_arquivo = "C:/Users/Odete/Desktop/consolidado.csv"
 #caminho_arquivo = "./consolidado.csv" #caminho para o arquivo de inputs
 index_arquivo = ['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'] #index do arquivo
 
-epsilon = 1.0 #valor de epsilon
+carregar_pesos = True
+carregar_epoca_epsilon = True
+epoca_init = 0
+if carregar_epoca_epsilon:
+    file = open("./epoca_epsilon.txt", "r")
+    valores = file.read().split(',')
+    epoca_init = int(valores[0])
+    epsilon = float(valores[1])
+    file.close()
+else:
+    epsilon = 1.0 #valor de epsilon
 epsilon_min = 0.0001 #valor minimo de epsilon
-epsilon_decay = (epsilon - epsilon_min) / epocas #o valor que vai retirado do epsilon por epoca
+epsilon_decay = (epsilon - epsilon_min) / (epocas - epoca_init) #o valor que vai retirado do epsilon por epoca
 
 rewards = [0] #variavel para guardar rewards
 plotx = [0] #variavel para guardar valores a serem plotados do eixo x
-
-carregar_pesos = True
 
 usar_cpu_gpu = True
 CPU_cores = 8  # If CPU, how many cores
@@ -166,14 +174,20 @@ if __name__ == "__main__":
     try:
         if carregar_pesos:
             modelo.carrega_pesos('./pesos.h5')
-        for epoca in range(epocas): #rodar uma quantidade de epocas
+        epoca_parou = epoca_init
+        for epoca in range(epoca_init, epocas): #rodar uma quantidade de epocas
             print("epoca {0}\n".format(epoca)) #mostra que epoca vai rodar
             sum_rewards = rodar_dias(inputs, custo) #adiciona o resultado da epoca na somatoria
             sum_rewards_total += sum_rewards
             print("resultado da epoca {0} = {1:0.2f}".format(epoca, sum_rewards))
+            epoca_parou += 1
             modelo.epsilon -= epsilon_decay
     finally:
         modelo.salva_pesos('./pesos.h5')
+        if carregar_epoca_epsilon:
+            file = open("./epoca_epsilon.txt", "w")
+            file.writelines("{0},{1}".format(epoca_parou, modelo.epsilon))
+            file.close()
         print("Somatoria dos rewards: {0:0.2f}".format(sum_rewards_total))
         print("Melhor resultado diario: {0:0.2f}".format(melhor_reward))
         plt.plot(plotx, rewards) #plota os valores de reward por dia

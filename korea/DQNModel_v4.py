@@ -49,7 +49,7 @@ class DQNAgent:
         target_f = self.model.predict(estado) #pega valor que chegou
         target_f[0][acao] = target #define o valor que deseja chegar
         
-        self.model.fit(estado, target_f, epochs=1, verbose=0) #treina modelo
+        self.model.fit(estado, target_f, epochs=1, verbose=0, batch_size=1) #treina modelo
         
     def tira_ultimo_state(self):
         if self.state.shape[0] > self.janela * self.n_variaveis:
