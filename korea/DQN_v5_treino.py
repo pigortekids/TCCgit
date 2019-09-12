@@ -188,6 +188,7 @@ if __name__ == "__main__":
             file = open("./epoca_epsilon.txt", "w")
             file.writelines("{0},{1}".format(epoca_parou, modelo.epsilon))
             file.close()
+            print("parou na epoca {0} com epsilon {1}".format(epoca_parou, modelo.epsilon))
         print("Somatoria dos rewards: {0:0.2f}".format(sum_rewards_total))
         print("Melhor resultado diario: {0:0.2f}".format(melhor_reward))
         plt.plot(plotx, rewards) #plota os valores de reward por dia
