@@ -25,7 +25,7 @@ custo = 1.06/2 #custo da operao
 posicao_max = 100 #define variavel para normalizar a posicao
 
 versao_arquivo = 1
-caminho_arquivo = "C:/Users/mtzcpd1669/Desktop/consolidado.csv"
+caminho_arquivo = "C:/Users/Odete/Desktop/consolidado.csv"
 #caminho_arquivo = "./consolidado.csv" #caminho para o arquivo de inputs
 index_arquivo = ['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'] #index do arquivo
 
