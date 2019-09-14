@@ -4,6 +4,16 @@ import DQNModel_v4 as dqn
 import matplotlib.pyplot as plt
 import random
 
+def tempoIntToStr(tempo): #função para transformar int para horario
+    milesimo = 1000
+    horas = int(tempo//(3600 * milesimo))
+    tempo -= horas * (3600 * milesimo)
+    minutos = int(tempo//(60 * milesimo))
+    tempo -= minutos * (60 * milesimo)
+    segundos = int(tempo//milesimo)
+    tempo -= segundos * milesimo
+    return '{:02d}'.format(horas) + ":" + '{:02d}'.format(minutos) + ":" + '{:02d}'.format(segundos) + "." + '{:03d}'.format(tempo)
+
 ##################### INICIALIZAO DE VARIAVEIS ################################################
 steps = [] # 9h04 -> 17h50 a cada 5 segundos
 janela = 10 #janela de valores
@@ -22,7 +32,8 @@ index_arquivo = ['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND'
 reward_acumulado = [0]
 plotx = [0]
 
-resultados = pd.DataFrame(columns=['dt', 'preco', 'hr_int', 'acao', 'carteira'])
+resultados = pd.DataFrame(columns=['dt', 'preco', 'acao', 'carteira', 'preco_ant',
+                                   'preco_pon', 'qnt_soma', 'max', 'min'])
 
 ####################### LEITURA DOS DADOS #######################################################
 arquivo = pd.read_csv(caminho_arquivo) #le arquivo
@@ -110,15 +121,17 @@ def rodar_1dia(precos, custo, dia):
             ncont, valor, posicao, ncont_anterior = atuacao(precos['preco'][step], ncont, acao, custo, valor)
             if ( ncont_anterior != ncont ): #reward acumulado recebe reward instantaneo somente se houver lucro/prejuizo real   
                 reward += posicao #soma reward
-
-        if acao == 0:
-            tomada_acao = "segura"
-        elif acao == 1:
-            tomada_acao = "compra"
+        
+        if arquivo.iloc[step, 0] != arquivo.iloc[step - 1, 0]:
+            preco_ant = arquivo.iloc[step, 1]
         else:
-            tomada_acao = "vende"
-        linhaAdicionar = {'dt':arquivo.iloc[step, 0], 'preco':arquivo.iloc[step, 1], 'hr_int':arquivo.iloc[step, 2],
-                          'acao':tomada_acao, 'carteira':round(reward, 2)} #cria linha a ser adicionada no arquivo final
+            preco_ant = arquivo.iloc[step - 1, 1]
+        dt = arquivo.iloc[step, 0] + " " + tempoIntToStr(arquivo.iloc[step, 2])[:8]
+        linhaAdicionar = {'dt':dt, 'preco':arquivo.iloc[step, 1], 'acao':acao,
+                          'carteira':round(reward, 2), 'preco_ant':preco_ant, 
+                          'preco_pon':arquivo.iloc[step]['preco_pon'],
+                          'qnt_soma':arquivo.iloc[step]['qnt_soma'],
+                          'max':arquivo.iloc[step]['max'], 'min':arquivo.iloc[step]['min']} #cria linha a ser adicionada no arquivo final
         global resultados
         resultados = resultados.append(linhaAdicionar, ignore_index=True)
 
