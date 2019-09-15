@@ -41,7 +41,7 @@ class DQNAgent:
         act_values = self.model.predict(estado) #calcula qual a melhor ao
         return np.argmax(act_values[0])  # returns action
 
-    def treina_modelo(self, acao, reward, valores_ant, valores_dps):
+    def treina_modelo(self, acao, reward, valores_ant, valores_dps, batch_size=1):
         prox_estado = np.array([np.append(self.next_state, valores_dps)]) #cria proximo estado
         target = (reward + self.gamma * np.amax(self.model.predict(prox_estado)[0])) #pega valor que quer chegar
         
@@ -49,7 +49,7 @@ class DQNAgent:
         target_f = self.model.predict(estado) #pega valor que chegou
         target_f[0][acao] = target #define o valor que deseja chegar
         
-        self.model.fit(estado, target_f, epochs=1, verbose=0, batch_size=None) #treina modelo
+        self.model.fit(estado, target_f, epochs=1, verbose=0, batch_size=batch_size) #treina modelo
         
     def tira_ultimo_state(self):
         if self.state.shape[0] > self.janela * self.n_variaveis:
