@@ -1,6 +1,7 @@
 ########################################   BIBLIOTECAS ####################################
 import random
 import numpy as np
+import tensorflow as tf
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
@@ -19,6 +20,7 @@ class DQNAgent:
         self.epsilon = epsilon  # exploration rate
         self.learning_rate = 0.001
         self.model = self.cria_modelo()
+        self.model.summary()
 
 ################################# REDE NEURAL ###########################################
     def cria_modelo(self):
@@ -27,7 +29,7 @@ class DQNAgent:
         model.add(Dense(self.n_neuronios, input_dim=self.state_size, activation='relu')) #camada de entrada (escondida)
         model.add(Dense(self.n_neuronios, activation='relu')) #camada escondida
         model.add(Dense(self.action_size, activation='softmax')) #camada de saida
-        model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=self.learning_rate)) #compilador
+        model.compile(loss='categorical_crossentropy', optimizer=tf.train.AdamOptimizer(learning_rate=self.learning_rate)) #compilador
         return model
 
     def limpa_memoria(self):
