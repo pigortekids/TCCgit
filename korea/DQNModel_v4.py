@@ -1,6 +1,7 @@
 ########################################   BIBLIOTECAS ####################################
 import random
 import numpy as np
+import tensorflow as tf
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
@@ -19,6 +20,7 @@ class DQNAgent:
         self.epsilon = epsilon  # exploration rate
         self.learning_rate = 0.001
         self.model = self.cria_modelo()
+        self.model.summary()
 
 ################################# REDE NEURAL ###########################################
     def cria_modelo(self):
@@ -27,7 +29,7 @@ class DQNAgent:
         model.add(Dense(self.n_neuronios, input_dim=self.state_size, activation='relu')) #camada de entrada (escondida)
         model.add(Dense(self.n_neuronios, activation='relu')) #camada escondida
         model.add(Dense(self.action_size, activation='softmax')) #camada de saida
-        model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=self.learning_rate)) #compilador
+        model.compile(loss='categorical_crossentropy', optimizer=tf.train.AdamOptimizer(learning_rate=self.learning_rate)) #compilador
         return model
 
     def limpa_memoria(self):
@@ -41,7 +43,7 @@ class DQNAgent:
         act_values = self.model.predict(estado) #calcula qual a melhor ao
         return np.argmax(act_values[0])  # returns action
 
-    def treina_modelo(self, acao, reward, valores_ant, valores_dps):
+    def treina_modelo(self, acao, reward, valores_ant, valores_dps, batch_size=1):
         prox_estado = np.array([np.append(self.next_state, valores_dps)]) #cria proximo estado
         target = (reward + self.gamma * np.amax(self.model.predict(prox_estado)[0])) #pega valor que quer chegar
         
@@ -49,7 +51,7 @@ class DQNAgent:
         target_f = self.model.predict(estado) #pega valor que chegou
         target_f[0][acao] = target #define o valor que deseja chegar
         
-        self.model.fit(estado, target_f, epochs=1, verbose=0, batch_size=1) #treina modelo
+        self.model.fit(estado, target_f, epochs=1, verbose=0, batch_size=batch_size) #treina modelo
         
     def tira_ultimo_state(self):
         if self.state.shape[0] > self.janela * self.n_variaveis:
