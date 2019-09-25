@@ -28,14 +28,14 @@ class DQNAgent:
         model.add(layers.Dense(self.n_neuronios, input_dim=self.state_size, activation='relu')) #camada de entrada (escondida)
         model.add(layers.Dense(self.n_neuronios, activation='relu')) #camada escondida
         model.add(layers.Dense(self.action_size, activation='softmax')) #camada de saida
+        model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=self.learning_rate),
+                      loss=tf.keras.losses.CategoricalCrossentropy(),
+                      metrics=[tf.keras.metrics.CategoricalAccuracy()]) #compilador
 # =============================================================================
-#         model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=self.learning_rate),
-#                       loss=tf.keras.losses.CategoricalCrossentropy(),
-#                       metrics=[tf.keras.metrics.CategoricalAccuracy()]) #compilador
+#         model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate),
+#               loss='mse',       # mean squared error
+#               metrics=['mae'])  # mean absolute error
 # =============================================================================
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate),
-              loss='mse',       # mean squared error
-              metrics=['mae'])  # mean absolute error
         return model
 
     def limpa_memoria(self):

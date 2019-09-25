@@ -17,9 +17,9 @@ def tempoIntToStr(tempo): #função para transformar int para horario
 ##################### INICIALIZAO DE VARIAVEIS ################################################
 steps = [] # 9h04 -> 17h50 a cada 5 segundos
 janela = 10 #janela de valores
-n_variaveis = 8 #'preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'
+n_variaveis = 1 #'preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'
 n_entradas = n_variaveis * janela + 3 #ncont, valor, posicao e inputs
-n_neuronios = 64 #numero de neuronios da camada escondida
+n_neuronios = 216 #numero de neuronios da camada escondida
 n_saidas = 3 #nmero de saidas da rede (compra, vende, segura)
 custo = 1.06/2 #custo da operao
 posicao_max = 100 #define variavel para normalizar a posicao
@@ -27,7 +27,7 @@ posicao_max = 100 #define variavel para normalizar a posicao
 versao_arquivo = 1
 caminho_arquivo = "C:/Users/Odete/Desktop/consolidado.csv"
 #caminho_arquivo = "./consolidado.csv" #caminho para o arquivo de inputs
-index_arquivo = ['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'] #index do arquivo
+index_arquivo = ['preco'] #['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'] #index do arquivo
 
 reward_acumulado = [0]
 plotx = [0]
@@ -38,9 +38,11 @@ resultados = pd.DataFrame(columns=['dt', 'preco', 'acao', 'carteira', 'preco_ant
 ####################### LEITURA DOS DADOS #######################################################
 arquivo = pd.read_csv(caminho_arquivo) #le arquivo
 inputs = arquivo[index_arquivo]
-if versao_arquivo == 1: #se quiser usar apenas os dias com IND e ISP
-    inputs = inputs[inputs['IND'] != 0]
-    arquivo = arquivo[arquivo['IND'] != 0]
+# =============================================================================
+# if versao_arquivo == 1: #se quiser usar apenas os dias com IND e ISP
+#     inputs = inputs[inputs['IND'] != 0]
+#     arquivo = arquivo[arquivo['IND'] != 0]
+# =============================================================================
 pmax = np.amax( inputs.loc[:, inputs.columns[0]] ) #define valor minimo do preo
 pmin = np.amin( inputs.loc[:, inputs.columns[0]] ) #define valor maximo do preo
 
@@ -151,7 +153,8 @@ def rodar_dias(precos, custo):
     return sum_rewards
 
 if __name__ == "__main__":
-    modelo.carrega_pesos('./pesos.h5')
+    caminho_pesos = "C:/Users/Odete/Desktop/TCCgit/Treino_bom/pesos.h5"
+    modelo.carrega_pesos(caminho_pesos)
     try:
         sum_rewards = rodar_dias(inputs, custo) #adiciona o resultado da epoca na somatoria
     finally:

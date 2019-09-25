@@ -8,18 +8,20 @@ import random
 steps = [] # 9h04 -> 17h50 a cada 5 segundos 
 epocas = 10000 #quantidade de vezes que vai rodar todos os dias
 janela = 10 #janela de valores
-n_variaveis = 8 #'preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'
+#n_variaveis = 8 #'preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'
+n_variaveis = 1 #'preco'
 n_entradas = n_variaveis * janela + 3 #ncont, valor, posicao e inputs
-n_neuronios = 64 #numero de neuronios da camada escondida
+n_neuronios = 216 #numero de neuronios da camada escondida
 n_saidas = 3 #nmero de saidas da rede (compra, vende, segura)
 custo = 1.06/2 #custo da operao
 melhor_reward = 0
 posicao_max = 100 #define variavel para normalizar a posicao
 
-versao_arquivo = 1
+versao_arquivo = 2
 caminho_arquivo = "C:/Users/Odete/Desktop/consolidado.csv"
 #caminho_arquivo = "./consolidado.csv" #caminho para o arquivo de inputs
-index_arquivo = ['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'] #index do arquivo
+#index_arquivo = ['preco', 'hr_int', 'preco_pon', 'qnt_soma', 'max', 'min', 'IND', 'ISP'] #index do arquivo
+index_arquivo = ['preco'] #index do arquivo
 
 carregar_pesos = True
 carregar_epoca_epsilon = True
@@ -68,6 +70,7 @@ for i in range( 0, len(dt) ):
         dias_para_rodar.append(j) #numero do dia
         j += 1
 dias = len(steps)
+dias = 100
 
 ########################  DECLARA MODELO ################################
 modelo = dqn.DQNAgent(n_entradas, n_saidas, epsilon, janela, n_neuronios, n_variaveis)
