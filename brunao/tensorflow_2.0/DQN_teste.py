@@ -67,7 +67,7 @@ for i in range( 0, len(dt) ):
         dias_para_rodar.append(j) #numero do dia
         j += 1
 dias = len(steps)
-dias = 100
+dias = 25
 
 ########################  DECLARA MODELO ################################
 modelo = dqn.DQNAgent(n_entradas, n_saidas, 1, janela, n_neuronios, n_variaveis)
@@ -177,7 +177,7 @@ def rodar_dias(precos, custo):
     return sum_rewards
 
 if __name__ == "__main__":
-    caminho_pesos = "C:/Users/mtzcpd1669/Desktop/TCCgit/brunao/tensorflow_2.0/pesos.h5"
+    caminho_pesos = "./pesos.h5"
     modelo.carrega_pesos(caminho_pesos)
     try:
         sum_rewards = rodar_dias(inputs, custo) #adiciona o resultado da epoca na somatoria
