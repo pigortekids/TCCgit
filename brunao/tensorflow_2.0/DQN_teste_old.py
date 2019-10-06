@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import DQNModel as dqn
+import DQNModel_old as dqn
 import matplotlib.pyplot as plt
 import random
 
@@ -33,7 +33,7 @@ n_entradas = n_variaveis * janela + 3 #ncont, valor, posicao e inputs
 reward_acumulado = [0]
 plotx = [0]
 
-resultados = pd.DataFrame(columns=['dt', 'preco', 'acao', 'qnt_contratos', 'carteira', 'preco_ant',
+resultados = pd.DataFrame(columns=['dt', 'preco', 'acao', 'carteira', 'preco_ant',
                                    'preco_pon', 'qnt_soma', 'max', 'min'])
 
 qnt_dias_positivos = 0
@@ -67,7 +67,6 @@ for i in range( 0, len(dt) ):
         dias_para_rodar.append(j) #numero do dia
         j += 1
 dias = len(steps)
-dias = 25
 
 ########################  DECLARA MODELO ################################
 modelo = dqn.DQNAgent(n_entradas, n_saidas, 1, janela, n_neuronios, n_variaveis)
@@ -97,12 +96,12 @@ def atuacao( preco, ncont, acao, custo, valor ):  #preo atual, n de contratos po
 
 def obter_acao(ncont, valores_ant):
     decisao = modelo.toma_acao(valores_ant, False) #calcula a saida da rede neural
-    
+
     if decisao == 0: #comprar
-        if ncont <= 10: #s compra se no tem nada ainda
+        if ncont == 0: #s compra se no tem nada ainda
             return 1
     elif decisao == 1: #vender
-        if ncont >= -10: #só vende se tiver alguma coisa
+        if ncont == 1: #s vende se tiver alguma coisa
             return -1
     return 0 #neutro
 
@@ -159,21 +158,20 @@ def rodar_1dia(precos, custo, dia):
                           'max':arquivo.iloc[step_final]['max'], 'min':arquivo.iloc[step_final]['min']}
 
     resultados = resultados.append(linhaAdicionar, ignore_index=True)
-    
+
+    reward += posicao - custo * abs(ncont) #soma reward - DAY-TRADE (obs: custo nao havia sido considerado no reward pq acao era 0)
     return reward #retorna o valor do reward
 
 def rodar_dias(precos, custo):   
     sum_rewards = 0 #cria variavel de somatoria de recompensas
     random.shuffle(dias_para_rodar) #randomiza vetor de dias
-    i = 0
     for dia in range( 1, dias ): #loop de dias
         reward = rodar_1dia(precos, custo, dia)
         sum_rewards += reward #roda 1 dia e adiciona o total na variavel de somatoria
         reward_acumulado.append(reward) #guarda o valor do reward
         plotx.append(np.max(plotx) + 1) #guarda o valor do dia
         dia_rodado = arquivo.iloc[steps[dias_para_rodar[dia] - 1]]['dt']
-        i += 1
-        print("{0} de {1} -> {2} obteve: R$ {3:0.2f}".format(i, dias, dia_rodado, reward)) #mostra o resultado do dia
+        print("dia {0} obteve resultado: R$ {1:0.2f}".format(dia_rodado, reward)) #mostra o resultado do dia
     return sum_rewards
 
 if __name__ == "__main__":
@@ -182,10 +180,6 @@ if __name__ == "__main__":
     try:
         sum_rewards = rodar_dias(inputs, custo) #adiciona o resultado da epoca na somatoria
     finally:
-        resultados.to_csv("./resultado.csv", index=None)
-        media = sum_rewards / dias
+        resultados.to_csv("./resultado.csv", index=None)   
         plt.plot(plotx, reward_acumulado) #plota os valores de reward por dia
         print("resultado final = {0:0.2f}".format(sum_rewards))
-        print("quantidade de dias positivos = {0}".format(qnt_dias_positivos))
-        print("quantidade de dias negativos = {0}".format(qnt_dias_negativos))
-        print("média = {0:0.2f}".format(media))
