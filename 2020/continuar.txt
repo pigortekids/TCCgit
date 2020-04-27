@@ -1,0 +1,3 @@
+-> ver se a ordem das metricas está certa para os treinos 1 e 2
+-> debugar se o ambiente esta certo
+-> aumentar numero de epocas
